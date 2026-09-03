@@ -36,11 +36,16 @@ class QuizViewSet(viewsets.ModelViewSet):
 
         # Instructors see their own quizzes; Learners see only published quizzes
         if getattr(user, 'role', '') == 'INSTRUCTOR':
-            return self.queryset.filter(
+            queryset = self.queryset.filter(
                 Q(lesson__section__course__instructor=user) | Q(is_published=True)
             )
+        else:
+            queryset = self.queryset.filter(is_published=True)
 
-        return self.queryset.filter(is_published=True)
+        lesson_id = self.request.query_params.get('lesson')
+        if lesson_id:
+            queryset = queryset.filter(lesson_id=lesson_id)
+        return queryset
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
@@ -70,7 +75,11 @@ class QuizViewSet(viewsets.ModelViewSet):
             if lesson.section.course.instructor != user:
                 raise PermissionDenied("You can only create quizzes for your own courses.")
 
-        serializer.save()
+        if Quiz.objects.filter(lesson=lesson).exists():
+            raise ValidationError({'lesson': 'A quiz is already attached to this lesson. You can update the existing quiz or choose another lesson.'})
+
+        # Save the quiz with the lesson
+        serializer.save(lesson=lesson)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, CanAttemptQuiz])
     def start(self, request, pk=None):
@@ -117,3 +126,28 @@ class QuizViewSet(viewsets.ModelViewSet):
 
         attempts = attempts.prefetch_related('answers__question__options')
         return Response(QuizAttemptResultSerializer(attempts, many=True).data)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def instructor_attempts(self, request):
+        user = request.user
+        if not (user.is_staff or getattr(user, 'role', '') in ['INSTRUCTOR', 'ADMIN']):
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+        course_id = request.query_params.get('course_id') or request.query_params.get('course')
+        quiz_id = request.query_params.get('quiz_id') or request.query_params.get('quiz')
+
+        attempts = QuizAttempt.objects.select_related(
+            'quiz__lesson__section__course',
+            'user'
+        ).prefetch_related('answers__question__options')
+
+        if not (user.is_staff or getattr(user, 'role', '') == 'ADMIN'):
+            attempts = attempts.filter(quiz__lesson__section__course__instructor=user)
+
+        if course_id:
+            attempts = attempts.filter(quiz__lesson__section__course_id=course_id)
+        if quiz_id:
+            attempts = attempts.filter(quiz_id=quiz_id)
+
+        attempts = attempts.order_by('-submitted_at', '-started_at')
+        return Response(QuizAttemptResultSerializer(attempts, many=True).data, status=status.HTTP_200_OK)

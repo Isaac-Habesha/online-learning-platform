@@ -62,6 +62,8 @@ class QuizAttemptService:
                 raise ValidationError("Time limit exceeded. Attempt marked as Timed Out.")
 
         questions = {q.id: q for q in quiz.questions.prefetch_related('options').all()}
+        if not questions:
+            raise ValidationError("This quiz does not have any questions configured.")
         total_points = sum(q.points for q in questions.values())
         earned_points = 0
         answers_to_create = []
@@ -101,11 +103,26 @@ class QuizAttemptService:
 
         QuizAnswer.objects.bulk_create(answers_to_create)
 
-        percentage_score = (earned_points / total_points * 100) if total_points > 0 else 100.0
+        percentage_score = (earned_points / total_points * 100) if total_points > 0 else 0.0
         attempt.score = round(percentage_score, 2)
         attempt.passed = attempt.score >= quiz.passing_score
         attempt.status = QuizAttempt.Status.SUBMITTED
         attempt.submitted_at = timezone.now()
         attempt.save()
+
+        if attempt.passed:
+            try:
+                from apps.enrollments.models import Enrollment
+                from apps.progress.services import update_enrollment_completion
+                course = quiz.lesson.section.course
+                enrollment = Enrollment.objects.filter(
+                    learner=attempt.user,
+                    course=course,
+                    status=Enrollment.Status.ACTIVE
+                ).first()
+                if enrollment:
+                    update_enrollment_completion(enrollment=enrollment)
+            except Exception:
+                pass
 
         return attempt

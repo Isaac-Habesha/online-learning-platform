@@ -47,6 +47,10 @@ class AssignmentSerializer(serializers.ModelSerializer):
 
 
 class AssignmentSubmissionSerializer(serializers.ModelSerializer):
+    assignment_title = serializers.CharField(source='assignment.title', read_only=True)
+    course_id = serializers.IntegerField(source='assignment.course.id', read_only=True)
+    course_title = serializers.CharField(source='assignment.course.title', read_only=True)
+    max_marks = serializers.IntegerField(source='assignment.max_marks', read_only=True)
     user_email = serializers.EmailField(source='user.email', read_only=True)
     user_full_name = serializers.CharField(source='user.get_full_name', read_only=True)
     graded_by_email = serializers.EmailField(source='graded_by.email', read_only=True)
@@ -56,6 +60,10 @@ class AssignmentSubmissionSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'assignment',
+            'assignment_title',
+            'course_id',
+            'course_title',
+            'max_marks',
             'user',
             'user_email',
             'user_full_name',
@@ -83,11 +91,20 @@ class AssignmentSubmissionSerializer(serializers.ModelSerializer):
             'graded_at',
             'updated_at',
         ]
+        extra_kwargs = {
+            'assignment': {'required': False},
+        }
 
     def validate(self, attrs):
         text_submission = attrs.get('text_submission')
         file_submission = attrs.get('file_submission')
-        assignment = attrs.get('assignment') or getattr(self.instance, 'assignment', None)
+        assignment = (
+            attrs.get('assignment')
+            or getattr(self.instance, 'assignment', None)
+            or self.context.get('assignment')
+        )
+        if assignment and 'assignment' not in attrs:
+            attrs['assignment'] = assignment
 
         # 1. At least one submission type must be provided
         if not text_submission and not file_submission:

@@ -1,0 +1,76 @@
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============8236296907924385959=="
+Subject: Verify your Online Learning Platform account
+From: noreply@onlinelearning.local
+To: mrolyompia@gmail.com
+Date: Tue, 01 Sep 2026 20:41:31 +0000
+Message-ID: <178829529109.28084.15982486342823866960@LAPTOP-1RP3725C>
+
+--===============8236296907924385959==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Hello yosef,
+
+Thank you for registering.
+
+Please verify your email address by opening this link:
+
+http://localhost:5173/verify-email/Z2yGZ9B_l9ry-5QNcplXS97T4_4bsB8atYkw3V_gv_=
+Hb5sSHe_IC8tcEW0SwlDZb
+
+This verification link expires in 24 hours.
+
+If you did not create this account, you can safely ignore this email.
+
+Online Learning Platform
+
+--===============8236296907924385959==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+
+    <html>
+    <body style=3D"font-family: Arial, sans-serif; line-height: 1.6; color: #=
+333;">
+        <div style=3D"max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2>Welcome to Online Learning Platform!</h2>
+            <p>Hello <strong>yosef</strong>,</p>
+            <p>Thank you for registering. Please verify your email address by=
+ clicking the button below:</p>
+            <div style=3D"text-align: center; margin: 30px 0;">
+                <a href=3D"http://localhost:5173/verify-email/Z2yGZ9B_l9ry-5Q=
+NcplXS97T4_4bsB8atYkw3V_gv_Hb5sSHe_IC8tcEW0SwlDZb" style=3D"display: inline-b=
+lock; padding: 12px 30px; background-color: #0ea5e9; color: white; text-decor=
+ation: none; border-radius: 6px; font-weight: bold;">
+                    Verify Your Email
+                </a>
+            </div>
+            <p>Or copy and paste this link in your browser:</p>
+            <p style=3D"word-break: break-all; background-color: #f5f5f5; pad=
+ding: 10px; border-radius: 4px;">
+                <code>http://localhost:5173/verify-email/Z2yGZ9B_l9ry-5QNcplX=
+S97T4_4bsB8atYkw3V_gv_Hb5sSHe_IC8tcEW0SwlDZb</code>
+            </p>
+            <p style=3D"font-size: 12px; color: #666;">
+                This verification link expires in 24 hours.
+            </p>
+            <p style=3D"font-size: 12px; color: #666;">
+                If you did not create this account, you can safely ignore thi=
+s email.
+            </p>
+            <hr style=3D"border: none; border-top: 1px solid #ddd; margin: 20=
+px 0;">
+            <p style=3D"font-size: 12px; color: #999;">
+                Online Learning Platform
+            </p>
+        </div>
+    </body>
+    </html>
+   =20
+
+--===============8236296907924385959==--
+
+-------------------------------------------------------------------------------

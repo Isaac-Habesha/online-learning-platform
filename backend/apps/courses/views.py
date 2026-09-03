@@ -938,12 +938,20 @@ class CourseCurriculumView(APIView):
     )
     def get(self, request, pk):
 
-        course = (
-            Course.objects
-            .filter(
-                pk=pk,
-                status=Course.Status.PUBLISHED,
+        course_qs = Course.objects.filter(pk=pk)
+        user = request.user
+        is_instructor_or_admin = (
+            user.is_authenticated and (
+                user.is_staff or 
+                getattr(user, 'role', '') == 'ADMIN' or 
+                course_qs.filter(instructor=user).exists()
             )
+        )
+        if not is_instructor_or_admin:
+            course_qs = course_qs.filter(status=Course.Status.PUBLISHED)
+
+        course = (
+            course_qs
             .select_related("instructor")
             .prefetch_related(
                 "sections__lessons"
@@ -967,3 +975,53 @@ class CourseCurriculumView(APIView):
             serializer.data,
             status=status.HTTP_200_OK,
         )
+
+
+class CourseStudentsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        operation_id="course_enrolled_students",
+        description="Get enrolled students and their progress for an instructor course",
+    )
+    def get(self, request, pk):
+        course = Course.objects.filter(pk=pk).first()
+        if not course:
+            return Response({"detail": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+        if not (user.is_staff or getattr(user, 'role', '') == 'ADMIN' or course.instructor == user):
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+        from apps.enrollments.models import Enrollment
+        from apps.progress.services import get_course_progress
+
+        enrollments = (
+            Enrollment.objects.filter(course=course)
+            .select_related("learner")
+            .order_by("-enrolled_at")
+        )
+
+        students_data = []
+        for enrollment in enrollments:
+            learner = enrollment.learner
+            progress_data = get_course_progress(learner=learner, course=course)
+            students_data.append({
+                "id": enrollment.id,
+                "learner_id": learner.id,
+                "full_name": getattr(learner, 'full_name', '') or learner.email.split('@')[0],
+                "email": learner.email,
+                "enrolled_at": enrollment.enrolled_at,
+                "status": enrollment.status,
+                "completed_at": enrollment.completed_at,
+                "progress_percentage": progress_data.get("progress_percentage", 0.0),
+                "is_completed": progress_data.get("is_completed", False),
+                "completed_lessons": progress_data.get("completed_lessons", 0),
+                "total_lessons": progress_data.get("total_lessons", 0),
+                "passed_quizzes": progress_data.get("passed_quizzes", 0),
+                "total_quizzes": progress_data.get("total_quizzes", 0),
+                "submitted_assignments": progress_data.get("submitted_assignments", 0),
+                "total_assignments": progress_data.get("total_assignments", 0),
+            })
+
+        return Response(students_data, status=status.HTTP_200_OK)

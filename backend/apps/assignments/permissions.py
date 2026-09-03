@@ -29,6 +29,10 @@ class CanViewOrSubmitAssignment(permissions.BasePermission):
         if not course:
             return False
 
+        # Owners need read access to manage their assignments in the dashboard.
+        if course.instructor == request.user:
+            return True
+
         # Fixed: using 'learner' instead of 'user'
         return Enrollment.objects.filter(
             learner=request.user, 

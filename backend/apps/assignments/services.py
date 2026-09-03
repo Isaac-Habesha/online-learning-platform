@@ -45,16 +45,31 @@ class AssignmentService:
             is_late=is_late,
             status=AssignmentSubmission.Status.SUBMITTED
         )
+
+        try:
+            from apps.progress.services import update_enrollment_completion
+            enrollment = Enrollment.objects.filter(
+                learner=user, 
+                course=course, 
+                status=Enrollment.Status.ACTIVE
+            ).first()
+            if enrollment:
+                update_enrollment_completion(enrollment=enrollment)
+        except Exception:
+            pass
+
         return submission
 
     @staticmethod
     @transaction.atomic
     def grade_submission(submission: AssignmentSubmission, instructor, grade: int, feedback: str = ""):
         # Acquire row lock on submission
-        submission = AssignmentSubmission.objects.select_for_update().select_related(
-            'assignment__lesson__section__course',
-            'assignment__section__course'
-        ).get(id=submission.id)
+        submission = AssignmentSubmission.objects.select_for_update(
+    of=('self',)
+).select_related(
+    'assignment__lesson__section__course',
+    'assignment__section__course'
+).get(id=submission.id)
 
         course = submission.assignment.course
         is_admin = instructor.is_staff or getattr(instructor, 'role', '') == 'ADMIN'

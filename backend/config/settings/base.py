@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/6.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
-
+from urllib.parse import urlparse
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "corsheaders",
     "django.contrib.sites",
+     "storages",
 
     # Local
     "apps.accounts",
@@ -166,11 +167,41 @@ SITE_ID = 1
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# media files 
 
-MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# Media files (Supabase Storage — S3-compatible)
 
+USE_SUPABASE_STORAGE = config("USE_SUPABASE_STORAGE", cast=bool, default=True)
+
+if USE_SUPABASE_STORAGE:
+    AWS_ACCESS_KEY_ID = config("SUPABASE_S3_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = config("SUPABASE_S3_SECRET_ACCESS_KEY")
+    AWS_STORAGE_BUCKET_NAME = config("SUPABASE_S3_BUCKET_NAME", default="media")
+    AWS_S3_ENDPOINT_URL = config("SUPABASE_S3_ENDPOINT_URL")
+    AWS_S3_REGION_NAME = config("SUPABASE_S3_REGION", default="us-east-1")
+    AWS_S3_ADDRESSING_STYLE = "path"
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = False
+
+    SUPABASE_PROJECT_URL = config("SUPABASE_PROJECT_URL")
+
+    # This makes django-storages build public, unsigned URLs via Supabase's
+    # public object endpoint, instead of the raw S3 protocol endpoint.
+    AWS_S3_CUSTOM_DOMAIN = f"{urlparse(SUPABASE_PROJECT_URL).netloc}/storage/v1/object/public/{AWS_STORAGE_BUCKET_NAME}"
+    AWS_S3_URL_PROTOCOL = "https:"
+
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+
+    MEDIA_URL = f"{SUPABASE_PROJECT_URL}/storage/v1/object/public/{AWS_STORAGE_BUCKET_NAME}/"
+else:
+    MEDIA_URL = "media/"
+    MEDIA_ROOT = BASE_DIR / "media"
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
@@ -226,6 +257,7 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
+    "SIGNING_KEY": SECRET_KEY if len(SECRET_KEY) >= 32 else (SECRET_KEY * 3)[:64],
 }
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -259,12 +291,6 @@ DEFAULT_FROM_EMAIL = config(
     "DEFAULT_FROM_EMAIL",
     default=config("EMAIL_HOST_USER", default="noreply@onlinelearning.local"),
 )
-
-FRONTEND_URL = config(
-    "FRONTEND_URL",
-    default="http://localhost:5173",
-)
-
 
 CELERY_BROKER_URL = config(
     "CELERY_BROKER_URL",

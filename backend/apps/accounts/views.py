@@ -45,6 +45,7 @@ from .oauth_services import (
 )
 
 class RegisterView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     @extend_schema(
@@ -59,7 +60,12 @@ class RegisterView(APIView):
                 data=request.data
             )
 
-            serializer.is_valid(raise_exception=True)
+            if not serializer.is_valid():
+                logger.error(f"Registration validation error: {serializer.errors}")
+                return Response(
+                    serializer.errors,
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             user = create_user(
                 email=serializer.validated_data["email"],
@@ -76,21 +82,16 @@ class RegisterView(APIView):
                 },
                 status=status.HTTP_201_CREATED,
             )
-        except ValidationError as e:
-            logger.error(f"Registration validation error: {e}")
+        except Exception as e:
+            logger.error(f"Registration error: {e}", exc_info=True)
             return Response(
                 {"detail": str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        except Exception as e:
-            logger.error(f"Registration error: {e}")
-            return Response(
-                {"detail": "An error occurred during registration."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
 class LoginView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     @extend_schema(
@@ -301,6 +302,7 @@ class MyProfileView(APIView):
 
 
 class VerifyEmailView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     @extend_schema(
@@ -364,6 +366,7 @@ class VerifyEmailView(APIView):
 
 
 class ResendVerificationView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     @extend_schema(
@@ -424,6 +427,7 @@ class ResendVerificationView(APIView):
 
 
 class PasswordResetRequestView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     @extend_schema(
@@ -476,6 +480,7 @@ class PasswordResetRequestView(APIView):
 
 
 class PasswordResetConfirmView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     @extend_schema(
@@ -658,6 +663,7 @@ class GoogleLoginView(APIView):
 
 
 class AdminLoginView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     @extend_schema(

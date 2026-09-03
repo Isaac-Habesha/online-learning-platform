@@ -36,13 +36,21 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         # Instructors see their own assignments; Learners see only published ones
         if getattr(user, 'role', '') == 'INSTRUCTOR':
-            return self.queryset.filter(
+            queryset = self.queryset.filter(
                 Q(lesson__section__course__instructor=user) |
                 Q(section__course__instructor=user) |
                 Q(is_published=True)
             ).distinct()
+        else:
+            queryset = self.queryset.filter(is_published=True)
 
-        return self.queryset.filter(is_published=True)
+        lesson_id = self.request.query_params.get('lesson')
+        section_id = self.request.query_params.get('section')
+        if lesson_id:
+            queryset = queryset.filter(lesson_id=lesson_id)
+        elif section_id:
+            queryset = queryset.filter(section_id=section_id)
+        return queryset
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
@@ -128,14 +136,30 @@ class SubmissionViewSet(viewsets.ReadOnlyModelViewSet):
             return AssignmentSubmission.objects.none()
 
         if user.is_staff or getattr(user, 'role', '') == 'ADMIN':
-            return self.queryset
+            queryset = self.queryset
+        else:
+            # Instructors see submissions for courses they teach; learners see only their own
+            queryset = self.queryset.filter(
+                Q(user=user) |
+                Q(assignment__lesson__section__course__instructor=user) |
+                Q(assignment__section__course__instructor=user)
+            ).distinct()
 
-        # Instructors see submissions for courses they teach; learners see only their own
-        return self.queryset.filter(
-            Q(user=user) |
-            Q(assignment__lesson__section__course__instructor=user) |
-            Q(assignment__section__course__instructor=user)
-        ).distinct()
+        course_id = self.request.query_params.get('course_id') or self.request.query_params.get('course')
+        assignment_id = self.request.query_params.get('assignment_id') or self.request.query_params.get('assignment')
+        sub_status = self.request.query_params.get('status')
+
+        if course_id:
+            queryset = queryset.filter(
+                Q(assignment__lesson__section__course_id=course_id) |
+                Q(assignment__section__course_id=course_id)
+            )
+        if assignment_id:
+            queryset = queryset.filter(assignment_id=assignment_id)
+        if sub_status:
+            queryset = queryset.filter(status=sub_status)
+
+        return queryset
 
     @action(
         detail=True, 

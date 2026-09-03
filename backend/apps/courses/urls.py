@@ -10,6 +10,7 @@ from .views import (
     LessonDetailView,
     LessonListCreateView,
     CourseCurriculumView,
+    CourseStudentsView,
 )
 
 
@@ -27,6 +28,11 @@ urlpatterns = [
         "<int:pk>/",
         CourseDetailView.as_view(),
         name="course-detail",
+    ),
+    path(
+        "<int:pk>/students/",
+        CourseStudentsView.as_view(),
+        name="course-students",
     ),
     path(
         "<int:pk>/publish/",

@@ -29,6 +29,7 @@ class Course(models.Model):
     slug = models.SlugField(
         max_length=255,
         unique=True,
+        blank=True,
     )
 
     short_description = models.CharField(
