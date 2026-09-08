@@ -2,13 +2,14 @@ import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
-import { LayoutDashboard, PlusCircle, ClipboardList, Sparkles } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, ClipboardList, Sparkles, MessageSquare } from 'lucide-react';
 
 export const InstructorLayout = () => {
   const location = useLocation();
 
   const tabs = [
     { name: 'Instructor Dashboard', path: '/instructor/dashboard', icon: LayoutDashboard },
+    { name: 'Student Messages', path: '/instructor/messages', icon: MessageSquare },
     { name: 'Course Studio Builder', path: '/instructor/courses/new', icon: PlusCircle },
     { name: 'Grading Queue', path: '/instructor/grading', icon: ClipboardList },
   ];

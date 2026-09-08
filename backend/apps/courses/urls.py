@@ -12,6 +12,10 @@ from .views import (
     CourseCurriculumView,
     CourseStudentsView,
 )
+from .bookmark_views import (
+    CourseBookmarkListView,
+    CourseBookmarkToggleView,
+)
 
 
 app_name = "courses"
@@ -71,5 +75,15 @@ urlpatterns = [
         "<int:pk>/curriculum/",
         CourseCurriculumView.as_view(),
         name="course-curriculum",
+    ),
+    path(
+        "bookmarks/",
+        CourseBookmarkListView.as_view(),
+        name="course-bookmarks-list",
+    ),
+    path(
+        "<int:course_id>/bookmark/",
+        CourseBookmarkToggleView.as_view(),
+        name="course-bookmark-toggle",
     ),
 ]

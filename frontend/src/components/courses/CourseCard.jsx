@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Badge from '../common/Badge';
 import { BookOpen, User, ArrowUpRight, Clock, Star, Sparkles } from 'lucide-react';
+import BookmarkButton from './BookmarkButton';
 
 export const CourseCard = ({ course, isEnrolled = false, progressPercentage = null }) => {
   const {
@@ -49,11 +50,12 @@ export const CourseCard = ({ course, isEnrolled = false, progressPercentage = nu
           </div>
         )}
 
-        {/* Floating Level Badge */}
-        <div className="absolute top-3 right-3">
+        {/* Floating Level Badge & Bookmark Button */}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
           <Badge variant={levelVariant} size="sm">
             {level}
           </Badge>
+          <BookmarkButton courseId={id} className="bg-slate-950/80 backdrop-blur-md p-1.5 rounded-lg border border-slate-700/60" />
         </div>
       </div>
 

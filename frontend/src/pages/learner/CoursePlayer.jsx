@@ -11,6 +11,8 @@ import Loader from '../../components/common/Loader';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
 import Modal from '../../components/common/Modal';
+import CertificateDownloadButton from '../../components/certificates/CertificateDownloadButton';
+import SupportChatDrawer from '../../components/chat/SupportChatDrawer';
 import {
   PlayCircle,
   FileText,
@@ -446,6 +448,12 @@ export const CoursePlayer = () => {
                 {courseProgress.total_assignments > 0 && (
                   <span>• Projects: {courseProgress.submitted_assignments}/{courseProgress.total_assignments}</span>
                 )}
+              </div>
+            )}
+
+            {courseProgress?.is_completed && (
+              <div className="pt-2">
+                <CertificateDownloadButton courseId={Number(courseId)} isCompleted={true} />
               </div>
             )}
           </div>
@@ -1185,6 +1193,9 @@ export const CoursePlayer = () => {
           </form>
         </div>
       </Modal>
+
+      {/* Realtime Support Chat Drawer */}
+      <SupportChatDrawer courseId={Number(courseId)} courseTitle={course?.title} />
     </div>
   );
 };

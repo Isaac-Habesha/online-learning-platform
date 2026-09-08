@@ -26,7 +26,10 @@ import {
   Users,
   CheckCircle2,
   Award,
+  Megaphone,
+  MessageSquare,
 } from 'lucide-react';
+import CreateAnnouncementModal from '../../components/notifications/CreateAnnouncementModal';
 
 export const InstructorDashboard = () => {
   const { user } = useAuth();
@@ -36,6 +39,11 @@ export const InstructorDashboard = () => {
   const [submissionsCount, setSubmissionsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState(null);
+
+  // Announcement Modal State
+  const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
+  const [selectedCourseForAnnouncement, setSelectedCourseForAnnouncement] = useState(null);
+  const [selectedStudentForAnnouncement, setSelectedStudentForAnnouncement] = useState(null);
 
   // Enrolled Students Modal State
   const [studentsModalOpen, setStudentsModalOpen] = useState(false);
@@ -152,9 +160,26 @@ export const InstructorDashboard = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="secondary"
+            size="md"
+            onClick={() => {
+              setSelectedCourseForAnnouncement(null);
+              setSelectedStudentForAnnouncement(null);
+              setAnnouncementModalOpen(true);
+            }}
+            leftIcon={<Megaphone className="w-4 h-4 text-amber-400" />}
+          >
+            Post Announcement
+          </Button>
+          <Link to="/instructor/messages">
+            <Button variant="secondary" size="md" leftIcon={<MessageSquare className="w-4 h-4 text-sky-400" />}>
+              Student Messages
+            </Button>
+          </Link>
           <Link to="/instructor/grading">
             <Button variant="secondary" size="md" leftIcon={<ClipboardList className="w-4 h-4 text-sky-400" />}>
-              Gradebook & Submissions
+              Gradebook
             </Button>
           </Link>
           <Link to="/instructor/courses/new">
@@ -263,6 +288,21 @@ export const InstructorDashboard = () => {
 
                   {/* Actions */}
                   <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedCourseForAnnouncement(course);
+                        setSelectedStudentForAnnouncement(null);
+                        setAnnouncementModalOpen(true);
+                      }}
+                      leftIcon={<Megaphone className="w-3.5 h-3.5 text-amber-400" />}
+                      title="Post announcement to students enrolled in this course"
+                      className="bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20 font-semibold"
+                    >
+                      Announce
+                    </Button>
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -400,6 +440,38 @@ export const InstructorDashboard = () => {
                       <span>• Quizzes: {student.passed_quizzes} / {student.total_quizzes} passed</span>
                       <span>• Projects: {student.submitted_assignments} / {student.total_assignments} submitted</span>
                     </div>
+
+                    {/* Student Actions */}
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-900">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-amber-400 hover:text-amber-300"
+                        leftIcon={<Megaphone className="w-3.5 h-3.5" />}
+                        onClick={() => {
+                          setSelectedCourseForAnnouncement(selectedCourseForStudents);
+                          setSelectedStudentForAnnouncement({
+                            id: student.learner_id || student.id,
+                            first_name: student.full_name,
+                          });
+                          setAnnouncementModalOpen(true);
+                        }}
+                      >
+                        Send Notice
+                      </Button>
+                      <Link
+                        to={`/instructor/messages?courseId=${selectedCourseForStudents?.id}&studentId=${student.learner_id || student.id}`}
+                      >
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="text-xs"
+                          leftIcon={<MessageSquare className="w-3.5 h-3.5" />}
+                        >
+                          Message Student
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -407,6 +479,18 @@ export const InstructorDashboard = () => {
           )}
         </div>
       </Modal>
+
+      {/* ANNOUNCEMENT MODAL */}
+      <CreateAnnouncementModal
+        isOpen={announcementModalOpen}
+        onClose={() => {
+          setAnnouncementModalOpen(false);
+          setSelectedCourseForAnnouncement(null);
+          setSelectedStudentForAnnouncement(null);
+        }}
+        preselectedCourse={selectedCourseForAnnouncement}
+        preselectedStudent={selectedStudentForAnnouncement}
+      />
     </div>
   );
 };

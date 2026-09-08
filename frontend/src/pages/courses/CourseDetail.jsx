@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import courseService from '../../services/courseService';
 import enrollmentService from '../../services/enrollmentService';
+import paymentService from '../../services/paymentService';
 import reviewService from '../../services/reviewService';
 import Loader from '../../components/common/Loader';
 import Button from '../../components/common/Button';
@@ -106,6 +107,8 @@ export const CourseDetail = () => {
     }));
   };
 
+  const isPaidCourse = !course?.is_free && Number(course?.price || 0) > 0;
+
   const handleEnroll = async () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: { pathname: `/courses/${id}` } } });
@@ -119,12 +122,23 @@ export const CourseDetail = () => {
 
     setEnrolling(true);
     try {
-      await enrollmentService.enroll(Number(id));
-      setIsEnrolled(true);
-      toast.success(`You are now enrolled in ${course.title}!`, 'Enrollment Confirmed');
-      navigate(`/learner/courses/${id}/player`);
+      if (isPaidCourse) {
+        toast.info('Initializing secure checkout with Chapa...', 'Payment Processing');
+        const paymentData = await paymentService.initializePayment(Number(id));
+        if (paymentData?.checkout_url) {
+          window.location.href = paymentData.checkout_url;
+          return;
+        } else {
+          throw new Error('Payment gateway did not return a checkout URL.');
+        }
+      } else {
+        await enrollmentService.enroll(Number(id));
+        setIsEnrolled(true);
+        toast.success(`You are now enrolled in ${course.title}!`, 'Enrollment Confirmed');
+        navigate(`/learner/courses/${id}/player`);
+      }
     } catch (err) {
-      const detail = err.response?.data?.detail || 'Unable to complete enrollment.';
+      const detail = err.response?.data?.detail || err.message || 'Unable to complete enrollment.';
       toast.error(detail, 'Enrollment Failed');
     } finally {
       setEnrolling(false);
@@ -250,7 +264,9 @@ export const CourseDetail = () => {
                       {course.is_free || course.price === 0 || course.price === '0.00' ? (
                         <span className="text-emerald-400">Free</span>
                       ) : (
-                        `$${course.price}`
+                        <span>
+                          {course.price} <span className="text-sm font-semibold text-slate-400">ETB</span>
+                        </span>
                       )}
                     </span>
                   </div>
@@ -270,7 +286,11 @@ export const CourseDetail = () => {
                       onClick={handleEnroll}
                       rightIcon={<Sparkles className="w-4 h-4" />}
                     >
-                      {isAuthenticated ? 'Enroll in Course' : 'Sign In to Enroll'}
+                      {!isAuthenticated
+                        ? 'Sign In to Enroll'
+                        : isPaidCourse
+                        ? `Pay with Chapa (${course.price} ETB)`
+                        : 'Enroll for Free'}
                     </Button>
                   )}
 

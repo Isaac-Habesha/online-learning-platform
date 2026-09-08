@@ -64,6 +64,10 @@ INSTALLED_APPS = [
     "apps.quizzes",
     "apps.assignments",
     "apps.reviews",
+    "apps.certificates",
+    "apps.payments",
+    "apps.chat",
+    "apps.notifications",
 
     #allauth
     "allauth",
@@ -339,3 +343,10 @@ GOOGLE_CLIENT_SECRET = config(
 GOOGLE_REDIRECT_URI = config(
     "GOOGLE_REDIRECT_URI",
 )
+
+# Chapa Payment Gateway
+CHAPA_SECRET_KEY = config("CHAPA_SECRET_KEY", default="CHASECK_TEST-V2sa2XqfYn6ahZ0Egff4mcvC2mXOF1aG")
+CHAPA_PUBLIC_KEY = config("CHAPA_PUBLIC_KEY", default="CHAPUBK_TEST-w5mSwC3P6WlQ9pgRwnghzd9pi6ycdTTq")
+CHAPA_WEBHOOK_SECRET = config("CHAPA_WEBHOOK_SECRET", default="Biruk@123")
+CHAPA_BASE_URL = config("CHAPA_BASE_URL", default="https://api.chapa.co/v1")
+BACKEND_URL = config("BACKEND_URL", default="http://localhost:8000")

@@ -15,6 +15,10 @@ import Home from '../pages/Home';
 import CourseCatalog from '../pages/courses/CourseCatalog';
 import CourseDetail from '../pages/courses/CourseDetail';
 
+// Payment & Verification Pages
+import PaymentSuccess from '../pages/payment/PaymentSuccess';
+import VerifyCertificate from '../pages/certificates/VerifyCertificate';
+
 // Auth Pages
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
@@ -27,11 +31,13 @@ import ResetPassword from '../pages/auth/ResetPassword';
 import LearnerDashboard from '../pages/learner/Dashboard';
 import CoursePlayer from '../pages/learner/CoursePlayer';
 import MyProgress from '../pages/learner/MyProgress';
+import Bookmarks from '../pages/learner/Bookmarks';
 
 // Instructor Pages
 import InstructorDashboard from '../pages/instructor/Dashboard';
 import CourseBuilder from '../pages/instructor/CourseBuilder';
 import GradingQueue from '../pages/instructor/GradingQueue';
+import InstructorMessages from '../pages/instructor/Messages';
 
 // Common UI
 import Button from '../components/common/Button';
@@ -60,6 +66,10 @@ export const AppRoutes = () => {
         <Route path="/" element={<Home />} />
         <Route path="/courses" element={<CourseCatalog />} />
         <Route path="/courses/:id" element={<CourseDetail />} />
+        <Route path="/payment-success" element={<PaymentSuccess />} />
+        <Route path="/verify" element={<VerifyCertificate />} />
+        <Route path="/verify/:certificateCode" element={<VerifyCertificate />} />
+        <Route path="/bookmarks" element={<Bookmarks />} />
       </Route>
 
       {/* 2. AUTH ROUTES */}
@@ -82,6 +92,7 @@ export const AppRoutes = () => {
       >
         <Route path="/learner/dashboard" element={<LearnerDashboard />} />
         <Route path="/learner/progress" element={<MyProgress />} />
+        <Route path="/learner/bookmarks" element={<Bookmarks />} />
       </Route>
 
       {/* Classroom Player (Learners, Instructors previewing content, and Admins) */}
@@ -114,6 +125,7 @@ export const AppRoutes = () => {
         <Route path="/instructor/courses/new" element={<CourseBuilder />} />
         <Route path="/instructor/courses/:id/edit" element={<CourseBuilder />} />
         <Route path="/instructor/grading" element={<GradingQueue />} />
+        <Route path="/instructor/messages" element={<InstructorMessages />} />
       </Route>
 
       {/* 5. CATCH-ALL 404 */}

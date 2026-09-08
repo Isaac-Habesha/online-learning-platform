@@ -267,7 +267,6 @@ class Lesson(models.Model):
     def __str__(self):
         return f"{self.section.title} - {self.title}"
 
-        # apps/courses/models.py (Conceptual Extension)
 class CourseCompletionPolicy(models.TextChoices):
     LESSONS_ONLY = "LESSONS_ONLY", "Lessons Only"
     LESSONS_AND_QUIZZES = "LESSONS_AND_QUIZZES", "Lessons and Passing Quizzes"
@@ -275,3 +274,29 @@ class CourseCompletionPolicy(models.TextChoices):
         "ALL",
         "Lessons, Passing Quizzes, and Graded/Submitted Assignments",
     )
+
+
+class CourseBookmark(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="course_bookmarks",
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="bookmarked_by",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "course"],
+                name="unique_user_course_bookmark",
+            )
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} bookmarked {self.course.title}"

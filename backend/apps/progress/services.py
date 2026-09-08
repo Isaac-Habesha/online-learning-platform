@@ -229,6 +229,12 @@ def update_enrollment_completion(
                 "updated_at",
             ]
         )
+        try:
+            from apps.certificates.services import issue_certificate_if_eligible
+            issue_certificate_if_eligible(enrollment=enrollment)
+        except Exception as e:
+            # Certificate generation failure shouldn't rollback progress completion
+            pass
         return True
 
     return False

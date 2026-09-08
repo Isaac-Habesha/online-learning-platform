@@ -14,8 +14,11 @@ import {
   Menu,
   X,
   Compass,
+  Heart,
+  MessageSquare,
 } from 'lucide-react';
 import Button from './Button';
+import NotificationBell from '../notifications/NotificationBell';
 
 export const Navbar = () => {
   const { user, isAuthenticated, isLearner, isInstructor, logout } = useAuth();
@@ -109,6 +112,17 @@ export const Navbar = () => {
                     <Award className="w-4 h-4" />
                     My Progress
                   </Link>
+                  <Link
+                    to="/learner/bookmarks"
+                    className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                      isActive('/learner/bookmarks')
+                        ? 'text-sky-400 bg-sky-500/10'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                    }`}
+                  >
+                    <Heart className="w-4 h-4" />
+                    Bookmarks
+                  </Link>
                 </>
               )}
 
@@ -124,6 +138,17 @@ export const Navbar = () => {
                   >
                     <LayoutDashboard className="w-4 h-4" />
                     Studio Dashboard
+                  </Link>
+                  <Link
+                    to="/instructor/messages"
+                    className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                      isActive('/instructor/messages')
+                        ? 'text-sky-400 bg-sky-500/10'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                    }`}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    Student Messages
                   </Link>
                   <Link
                     to="/instructor/courses/new"
@@ -168,11 +193,13 @@ export const Navbar = () => {
                 </Link>
               </>
             ) : (
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-all text-left"
-                >
+              <>
+                <NotificationBell />
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-all text-left"
+                  >
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
                     {user?.first_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
                   </div>
@@ -225,6 +252,7 @@ export const Navbar = () => {
                   </div>
                 )}
               </div>
+              </>
             )}
           </div>
 
@@ -266,6 +294,12 @@ export const Navbar = () => {
                   >
                     My Progress
                   </Link>
+                  <Link
+                    to="/learner/bookmarks"
+                    className="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-900"
+                  >
+                    My Bookmarks
+                  </Link>
                 </>
               )}
               {isInstructor && (
@@ -275,6 +309,12 @@ export const Navbar = () => {
                     className="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-900"
                   >
                     Studio Dashboard
+                  </Link>
+                  <Link
+                    to="/instructor/messages"
+                    className="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-900"
+                  >
+                    Student Messages
                   </Link>
                   <Link
                     to="/instructor/courses/new"

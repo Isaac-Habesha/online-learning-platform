@@ -6,6 +6,9 @@ DEBUG = True
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
+    ".ngrok-free.app",
+    ".ngrok.io",
+    "*",
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -13,13 +16,21 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 
-# Use SQLite for local development
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://*.ngrok-free.app",
+    "https://*.ngrok.io",
+]
+
+# Use in-memory SQLite for automated tests to ensure test suite isolation
+if "test" in sys.argv:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
+    }
 
 # Email Configuration for Development
 # Option 1: File-based backend (saves emails to files)

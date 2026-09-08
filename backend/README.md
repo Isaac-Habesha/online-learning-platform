@@ -1,6 +1,6 @@
-# Online Learning Platform - Backend API
+# Online Learning Platform
 
-A comprehensive Django REST Framework backend for an online learning platform with course management, user authentication, enrollment tracking, and lesson access control.
+A full-stack online learning platform. The `backend/` directory contains the Django REST Framework API, while `frontend/` contains the React/Vite web application.
 
 ## 📋 Table of Contents
 
@@ -10,10 +10,14 @@ A comprehensive Django REST Framework backend for an online learning platform wi
 - [Setup Instructions](#setup-instructions)
 - [API Documentation](#api-documentation)
 - [Core Applications](#core-applications)
-  - [1. Accounts App](#1-accounts-app)
-  - [2. Categories App](#2-categories-app)
-  - [3. Courses App](#3-courses-app)
-  - [4. Enrollments App](#4-enrollments-app)
+  - [Accounts](#accounts)
+  - [Categories](#categories)
+  - [Courses](#courses)
+  - [Enrollments](#enrollments)
+  - [Progress](#progress)
+  - [Quizzes](#quizzes)
+  - [Assignments](#assignments)
+  - [Reviews](#reviews)
 - [Authentication & Authorization](#authentication--authorization)
 - [Access Control Logic](#access-control-logic)
 - [Testing](#testing)
@@ -32,40 +36,61 @@ This backend provides a complete REST API for an online learning platform with t
 - **Password Reset**: Secure password reset functionality
 - **Google OAuth**: Social authentication via Google
 - **JWT Authentication**: Token-based authentication with refresh tokens
+- **Progress Tracking**: Track learner progress through courses and lessons
+- **Quizzes**: Create, take, submit, and review quizzes
+- **Assignments**: Create assignments, submit work, and grade submissions
+- **Reviews**: Rate and review courses
 
 ## 🛠 Tech Stack
 
-- **Framework**: Django 6.1
-- **API Framework**: Django REST Framework 3.18.0
+- **Backend**: Django and Django REST Framework
+- **Frontend**: React 18 with Vite
+- **API Framework**: Django REST Framework
 - **Authentication**: JWT (djangorestframework_simplejwt 5.5.1)
 - **API Documentation**: drf-spectacular 0.30.0 (OpenAPI 3.0)
 - **Database**: PostgreSQL (via psycopg 3.2.3)
 - **Task Queue**: Celery 5.6.3 with Redis
 - **Email**: Gmail SMTP
 - **Social Auth**: django-allauth 65.19.0 (Google OAuth)
+- **Frontend Styling**: Tailwind CSS
+- **HTTP Client**: Axios
 
 ## 📁 Project Structure
 
 ```
-backend/
-├── apps/
-│   ├── accounts/          # User authentication and profiles
-│   ├── categories/        # Category management
-│   ├── courses/          # Course, section, and lesson management
-│   └── enrollments/      # Enrollment tracking and access control
-├── config/
-│   ├── settings/
-│   │   ├── base.py       # Base settings
-│   │   ├── development.py
-│   │   └── production.py
-│   ├── urls.py           # Main URL configuration
-│   ├── wsgi.py
-│   ├── asgi.py
-│   └── celery.py         # Celery configuration
-├── manage.py
-├── requirements.txt
-├── .env
-└── .env.example
+repository-root/
+├── backend/
+│   ├── apps/
+│   │   ├── accounts/      # Users, profiles, authentication, and verification
+│   │   ├── assignments/   # Assignments, submissions, and grading
+│   │   ├── categories/    # Course categories
+│   │   ├── courses/       # Courses, sections, and lessons
+│   │   ├── enrollments/   # Enrollments and lesson access control
+│   │   ├── progress/      # Learner course and lesson progress
+│   │   ├── quizzes/       # Quizzes, questions, attempts, and results
+│   │   └── reviews/       # Course ratings and reviews
+│   ├── config/
+│   │   ├── settings/      # Base, development, and production settings
+│   │   ├── urls.py        # Admin, API, OAuth, and documentation routes
+│   │   ├── asgi.py
+│   │   ├── celery.py
+│   │   └── wsgi.py
+│   ├── manage.py
+│   └── requirements.txt
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/    # Shared, learner, and instructor UI
+│   │   ├── contexts/      # React context providers
+│   │   ├── layouts/       # Application layouts
+│   │   ├── pages/         # Route-level screens
+│   │   ├── routes/        # Frontend route definitions
+│   │   └── services/      # API clients and frontend services
+│   ├── package.json
+│   └── vite.config.js
+├── media/                 # Uploaded profile and course media
+├── courses/thumbnails/    # Course thumbnail assets
+└── sent_emails/           # Development email output
 ```
 
 ## 🚀 Setup Instructions
@@ -79,46 +104,46 @@ backend/
 
 ### Installation Steps
 
-1. **Clone the repository**
+1. **Install backend dependencies**
 ```bash
-git clone <repository-url>
-cd online-learning-platform/backend
-```
-
-2. **Create virtual environment**
-```bash
+cd backend
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. **Install dependencies**
-```bash
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # macOS/Linux
 pip install -r requirements.txt
 ```
 
-4. **Configure environment variables**
+2. **Configure environment variables**
 ```bash
-cp .env.example .env
-# Edit .env with your configuration
+copy .env.example .env  # Windows
+# cp .env.example .env  # macOS/Linux
+# Edit .env with your local configuration
 ```
 
-5. **Run migrations**
+3. **Run migrations and start the API**
 ```bash
 python manage.py migrate
-```
-
-6. **Create superuser**
-```bash
-python manage.py createsuperuser
-```
-
-7. **Start development server**
-```bash
 python manage.py runserver
 ```
 
-8. **Start Celery worker** (optional, for background tasks)
+4. **Install and start the frontend** (in a second terminal)
 ```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend runs at `http://localhost:5173/` and the API runs at `http://127.0.0.1:8000/`.
+
+5. **Create an administrator** (optional)
+```bash
+cd backend
+python manage.py createsuperuser
+```
+
+6. **Start Celery worker** (optional, for background tasks)
+```bash
+cd backend
 celery -A config worker -l info
 ```
 
@@ -177,7 +202,7 @@ http://localhost:8000/api/schema/
 
 ## 🏗 Core Applications
 
-### 1. Accounts App
+### Accounts
 
 **Purpose**: User authentication, registration, and profile management
 
@@ -202,18 +227,43 @@ http://localhost:8000/api/schema/
 
 | Method | Endpoint | Description | Authentication |
 |--------|----------|-------------|----------------|
-| POST | `/api/auth/register/` | Register new user | No |
-| POST | `/api/auth/login/` | Login with email/password | No |
-| POST | `/api/auth/admin/login/` | Admin login (no email verification) | No |
-| POST | `/api/auth/google/login/` | Login with Google OAuth | No |
-| POST | `/api/auth/logout/` | Logout and blacklist token | Yes |
-| GET | `/api/auth/me/` | Get current user info | Yes |
-| GET | `/api/auth/profile/` | Get user profile | Yes |
-| PATCH | `/api/auth/profile/` | Update user profile | Yes |
-| POST | `/api/auth/verify-email/` | Verify email address | No |
-| POST | `/api/auth/resend-verification/` | Resend verification email | No |
-| POST | `/api/auth/password-reset/` | Request password reset | No |
-| POST | `/api/auth/password-reset-confirm/` | Confirm password reset | No |
+| POST | `/api/accounts/register/` | Register new user | No |
+| POST | `/api/accounts/login/` | Login with email/password | No |
+| POST | `/api/accounts/admin/login/` | Admin login (no email verification) | No |
+| POST | `/api/accounts/google/login/` | Login with Google OAuth | No |
+| POST | `/api/accounts/logout/` | Logout and blacklist token | Yes |
+| GET | `/api/accounts/me/` | Get current user info | Yes |
+| GET/PATCH | `/api/accounts/profile/` | Get or update user profile | Yes |
+| POST | `/api/accounts/verify-email/` | Verify email address | No |
+| POST | `/api/accounts/resend-verification/` | Resend verification email | No |
+| POST | `/api/accounts/password-reset/` | Request password reset | No |
+| POST | `/api/accounts/password-reset-confirm/` | Confirm password reset | No |
+
+#### Email Verification Flow
+
+Public registration creates an email verification token. Learners and instructors must verify their email before they can log in; administrator accounts are created separately with `createsuperuser`.
+
+1. Register with `POST /api/accounts/register/` using the fields `email`, `first_name`, `last_name`, `role`, `password`, and `password_confirm`.
+2. In development, open the newest email file in `backend/sent_emails/` and copy the complete token from the verification link.
+3. Open the link in this format, or visit the page and paste the token manually:
+   `http://localhost:5173/verify-email?token=YOUR_TOKEN`
+4. The frontend submits the token to `POST /api/accounts/verify-email/`:
+
+```json
+{
+  "token": "YOUR_TOKEN"
+}
+```
+
+5. After a successful `200 OK` response, log in through `POST /api/accounts/login/`.
+
+Tokens are stored as hashes, expire after 24 hours, and can only be used once. To issue a new token, submit the account email to `POST /api/accounts/resend-verification/`:
+
+```json
+{
+  "email": "learner@example.com"
+}
+```
 
 #### User Roles
 
@@ -223,7 +273,7 @@ http://localhost:8000/api/schema/
 
 ---
 
-### 2. Categories App
+### Categories
 
 **Purpose**: Hierarchical category organization for courses
 
@@ -261,7 +311,7 @@ http://localhost:8000/api/schema/
 
 ---
 
-### 3. Courses App
+### Courses
 
 **Purpose**: Course, section, and lesson management
 
@@ -328,7 +378,7 @@ http://localhost:8000/api/schema/
 
 ---
 
-### 4. Enrollments App
+### Enrollments
 
 **Purpose**: Enrollment tracking and lesson access control
 
@@ -391,6 +441,29 @@ return has_course_access(user=user, course=course)
 - Cannot enroll if already enrolled (unless re-enrolling cancelled course)
 - Cancelled enrollments can be reactivated
 
+### Progress
+
+Tracks lesson starts, lesson completion, personal progress, and progress for a specific course.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/progress/lessons/{lesson_id}/start/` | Start lesson progress |
+| POST | `/api/progress/lessons/{lesson_id}/complete/` | Mark a lesson complete |
+| GET | `/api/progress/my/` | List the current learner's progress |
+| GET | `/api/progress/courses/{course_id}/` | Get progress for a course |
+
+### Quizzes
+
+Provides quiz creation and management, question handling, attempts, submissions, and results at `/api/quizzes/`.
+
+### Assignments
+
+Provides assignment creation and management, learner submissions, and instructor grading at `/api/assignments/assignments/` and `/api/assignments/submissions/`.
+
+### Reviews
+
+Provides course reviews and ratings at `/api/reviews/reviews/`.
+
 ## 🔐 Authentication & Authorization
 
 ### JWT Authentication
@@ -403,12 +476,12 @@ The API uses JWT (JSON Web Tokens) for authentication:
 
 ### Authentication Flow
 
-1. **Register**: Create account via `/api/auth/register/`
-2. **Verify Email**: Verify email via `/api/auth/verify-email/`
-3. **Login**: Get tokens via `/api/auth/login/`
+1. **Register**: Create account via `/api/accounts/register/`
+2. **Verify Email**: Verify email via `/api/accounts/verify-email/`
+3. **Login**: Get tokens via `/api/accounts/login/`
 4. **Access API**: Include access token in Authorization header
 5. **Refresh**: Use refresh token to get new access token
-6. **Logout**: Blacklist refresh token via `/api/auth/logout/`
+6. **Logout**: Blacklist refresh token via `/api/accounts/logout/`
 
 ### Authorization
 
@@ -496,12 +569,18 @@ curl http://127.0.0.1:8000/api/enrollments/lessons/{lesson_id}/
 
 # 4. Test with enrollment
 # First, register and login to get token
-curl -X POST http://127.0.0.1:8000/api/auth/register/ \
+curl -X POST http://127.0.0.1:8000/api/accounts/register/ \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","first_name":"Test","last_name":"User","password":"TestPass123","password_confirm":"TestPass123","role":"LEARNER"}'
 
-# Login
-curl -X POST http://127.0.0.1:8000/api/auth/login/ \
+# In development, copy the token from the newest file in backend/sent_emails/.
+# Verify the account before logging in.
+curl -X POST http://127.0.0.1:8000/api/accounts/verify-email/ \
+  -H "Content-Type: application/json" \
+  -d '{"token":"YOUR_VERIFICATION_TOKEN"}'
+
+# Login after verification
+curl -X POST http://127.0.0.1:8000/api/accounts/login/ \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"TestPass123"}'
 
