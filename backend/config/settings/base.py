@@ -285,10 +285,16 @@ EMAIL_HOST_PASSWORD = config(
     "EMAIL_HOST_PASSWORD",
 )
 
+EMAIL_USE_SSL = config(
+    "EMAIL_USE_SSL",
+    cast=bool,
+    default=False,
+)
+
 EMAIL_USE_TLS = config(
     "EMAIL_USE_TLS",
     cast=bool,
-    default=True,
+    default=False if EMAIL_USE_SSL else True,
 )
 
 DEFAULT_FROM_EMAIL = config(

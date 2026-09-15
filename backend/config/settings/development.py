@@ -33,19 +33,8 @@ if "test" in sys.argv:
     }
 
 # Email Configuration for Development
-# Option 1: File-based backend (saves emails to files)
-EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
-EMAIL_FILE_PATH = BASE_DIR / "sent_emails"
-
-# Option 2: Console backend (prints to console)
-# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-
-# #Option 3: SMTP configuration (uncomment and configure to use with services like Gmail, Mailgun, etc.)
-# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-# EMAIL_HOST = "smtp.gmail.com"  # or your SMTP server
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = "hugeboss171@gmail.com"
-# EMAIL_HOST_PASSWORD = "milekejzxjihethw"  # Use app-specific password for Gmail
-
-DEFAULT_FROM_EMAIL = "noreply@onlinelearning.local"
+# Use SMTP backend for real email delivery
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_PORT = config("EMAIL_PORT", cast=int, default=465)
+EMAIL_USE_SSL = config("EMAIL_USE_SSL", cast=bool, default=True)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", cast=bool, default=False)
