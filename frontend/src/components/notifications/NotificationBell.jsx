@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, CheckCheck, BookOpen, MessageSquare, AlertCircle, X, ExternalLink } from 'lucide-react';
 import useSocket from '../../hooks/useSocket';
 import useNotifications from '../../hooks/useNotifications';
@@ -6,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export const NotificationBell = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { socket } = useSocket();
   const {
     notifications,
@@ -85,7 +87,13 @@ export const NotificationBell = () => {
               notifications.map((n) => (
                 <div
                   key={n.id}
-                  onClick={() => !n.is_read && markRead(n.id)}
+                  onClick={() => {
+                    if (!n.is_read) markRead(n.id);
+                    if (n.conversation) {
+                      setIsOpen(false);
+                      navigate(`/instructor/messages?conversationId=${n.conversation}`);
+                    }
+                  }}
                   className={`p-3.5 transition cursor-pointer flex gap-3 ${
                     n.is_read
                       ? 'bg-slate-900/60 opacity-80 hover:bg-slate-800/40'

@@ -130,6 +130,17 @@ async def on_message_send(sid, data):
         conv.save(update_fields=["updated_at"])
 
         recipient_id = conv.instructor_id if user_id == conv.student_id else conv.student_id
+        if user_id == conv.student_id:
+            from apps.notifications.models import Notification
+            Notification.objects.create(
+                type=Notification.Type.CHAT_MESSAGE,
+                title=f"New message from {sender.get_full_name() or sender.email}",
+                body=f"{sender.get_full_name() or sender.email} sent you a new message in {conv.course.title}.",
+                course=conv.course,
+                sender=sender,
+                recipient=conv.instructor,
+                conversation=conv,
+            )
         return MessageSerializer(msg).data, recipient_id
 
     msg_data, recipient_id = await save_message()

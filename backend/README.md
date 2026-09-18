@@ -230,7 +230,7 @@ http://localhost:8000/api/schema/
 | POST | `/api/accounts/register/` | Register new user | No |
 | POST | `/api/accounts/login/` | Login with email/password | No |
 | POST | `/api/accounts/admin/login/` | Admin login (no email verification) | No |
-| POST | `/api/accounts/google/login/` | Login with Google OAuth | No |
+| POST | `/api/accounts/google/` | Login or sign up with Google OAuth | No |
 | POST | `/api/accounts/logout/` | Logout and blacklist token | Yes |
 | GET | `/api/accounts/me/` | Get current user info | Yes |
 | GET/PATCH | `/api/accounts/profile/` | Get or update user profile | Yes |

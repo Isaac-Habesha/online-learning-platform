@@ -19,6 +19,21 @@ export const courseService = {
     return response.data;
   },
 
+  getAnnouncements: async (courseId) => {
+    const response = await api.get(`/courses/${courseId}/announcements/`);
+    return response.data;
+  },
+
+  createAnnouncement: async (courseId, data) => {
+    const response = await api.post(`/courses/${courseId}/announcements/`, data);
+    return response.data;
+  },
+
+  updateAnnouncement: async (announcementId, data) => {
+    const response = await api.patch(`/courses/announcements/${announcementId}/`, data);
+    return response.data;
+  },
+
   // GET /api/courses/:id/students/ (instructor only)
   getCourseStudents: async (id) => {
     const response = await api.get(`/courses/${id}/students/`);

@@ -10,11 +10,19 @@ from .views import (
     LessonDetailView,
     LessonListCreateView,
     CourseCurriculumView,
+    CourseAnnouncementListCreateView,
+    CourseAnnouncementDetailView,
     CourseStudentsView,
 )
 from .bookmark_views import (
     CourseBookmarkListView,
     CourseBookmarkToggleView,
+)
+from .video_views import (
+    VideoUploadView,
+    VideoDetailView,
+    VideoReplaceView,
+    VideoPlaybackView,
 )
 
 
@@ -77,6 +85,16 @@ urlpatterns = [
         name="course-curriculum",
     ),
     path(
+        "<int:course_id>/announcements/",
+        CourseAnnouncementListCreateView.as_view(),
+        name="course-announcement-list-create",
+    ),
+    path(
+        "announcements/<int:announcement_id>/",
+        CourseAnnouncementDetailView.as_view(),
+        name="course-announcement-detail",
+    ),
+    path(
         "bookmarks/",
         CourseBookmarkListView.as_view(),
         name="course-bookmarks-list",
@@ -85,5 +103,26 @@ urlpatterns = [
         "<int:course_id>/bookmark/",
         CourseBookmarkToggleView.as_view(),
         name="course-bookmark-toggle",
+    ),
+    # Video management endpoints
+    path(
+        "lessons/<int:lesson_id>/video/upload/",
+        VideoUploadView.as_view(),
+        name="video-upload",
+    ),
+    path(
+        "lessons/<int:lesson_id>/video/replace/",
+        VideoReplaceView.as_view(),
+        name="video-replace",
+    ),
+    path(
+        "lessons/<int:lesson_id>/video/playback/",
+        VideoPlaybackView.as_view(),
+        name="video-playback",
+    ),
+    path(
+        "videos/<int:video_id>/",
+        VideoDetailView.as_view(),
+        name="video-detail",
     ),
 ]

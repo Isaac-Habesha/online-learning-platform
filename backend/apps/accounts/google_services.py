@@ -13,14 +13,23 @@ def verify_google_credential(credential):
     Verify a Google ID token and return trusted Google identity data.
     """
 
+    client_id = getattr(settings, "GOOGLE_CLIENT_ID", "")
+    if not client_id:
+        raise GoogleAuthenticationError(
+            "Google authentication is not configured on the server."
+        )
+
+    if not credential or not isinstance(credential, str):
+        raise GoogleAuthenticationError("Google credential is required.")
+
     try:
         google_data = id_token.verify_oauth2_token(
             credential,
             requests.Request(),
-            settings.GOOGLE_CLIENT_ID,
+            client_id,
         )
 
-    except ValueError as exc:
+    except (ValueError, TypeError) as exc:
         raise GoogleAuthenticationError(
             "Invalid Google credential."
         ) from exc
@@ -57,14 +66,8 @@ def verify_google_credential(credential):
     return {
         "google_id": google_id,
         "email": email.lower().strip(),
-        "first_name": google_data.get(
-            "given_name",
-            "",
-        ),
-        "last_name": google_data.get(
-            "family_name",
-            "",
-        ),
+        "first_name": (google_data.get("given_name") or "Google").strip(),
+        "last_name": (google_data.get("family_name") or "User").strip(),
         "picture": google_data.get(
             "picture",
             "",

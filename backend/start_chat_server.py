@@ -8,7 +8,7 @@ import sys
 import django
 
 # Setup Django environment
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.production")
 django.setup()
 
 import uvicorn

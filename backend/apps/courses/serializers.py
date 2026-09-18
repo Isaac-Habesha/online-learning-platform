@@ -1,10 +1,51 @@
 from rest_framework import serializers
 
 from .models import (
+    Announcement,
     Course,
     CourseSection,
     Lesson,
+    Video,
     )
+
+
+class AnnouncementSerializer(serializers.ModelSerializer):
+    course_title = serializers.CharField(source="course.title", read_only=True)
+    instructor_name = serializers.CharField(source="instructor.get_full_name", read_only=True)
+
+    class Meta:
+        model = Announcement
+        fields = [
+            "id",
+            "course",
+            "course_title",
+            "instructor",
+            "instructor_name",
+            "title",
+            "message",
+            "live_stream_url",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "course",
+            "course_title",
+            "instructor",
+            "instructor_name",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate_title(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("Title is required.")
+        return value.strip()
+
+    def validate_message(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("Message is required.")
+        return value.strip()
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -172,6 +213,7 @@ class LessonSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "content_type",
+            "video_type",
             "video_url",
             "article_content",
             "document",
@@ -187,7 +229,8 @@ class LessonSerializer(serializers.ModelSerializer):
             "title": {"help_text": "Lesson title"},
             "description": {"help_text": "Lesson description"},
             "content_type": {"help_text": "Content type (VIDEO, ARTICLE, DOCUMENT, EXTERNAL)"},
-            "video_url": {"help_text": "Video URL (required for VIDEO type)"},
+            "video_type": {"help_text": "Video type (NONE, EXTERNAL, HOSTED)"},
+            "video_url": {"help_text": "External video URL (required for EXTERNAL video type)"},
             "article_content": {"help_text": "Article content (required for ARTICLE type)"},
             "document": {"help_text": "Document file (required for DOCUMENT type)"},
             "external_url": {"help_text": "External resource URL (required for EXTERNAL type)"},
@@ -212,6 +255,15 @@ class LessonSerializer(serializers.ModelSerializer):
                 self.instance,
                 "content_type",
                 None,
+            ),
+        )
+
+        video_type = attrs.get(
+            "video_type",
+            getattr(
+                self.instance,
+                "video_type",
+                Lesson.VideoType.NONE,
             ),
         )
 
@@ -251,13 +303,20 @@ class LessonSerializer(serializers.ModelSerializer):
             ),
         )
 
+        # Validate content type requirements
         if content_type == Lesson.ContentType.VIDEO:
-            if not video_url:
+            if video_type == Lesson.VideoType.EXTERNAL and not video_url:
                 raise serializers.ValidationError({
                     "video_url": (
-                        "Video URL is required for video lessons."
+                        "Video URL is required for EXTERNAL video type."
                     )
                 })
+            elif video_type == Lesson.VideoType.HOSTED:
+                # Hosted videos are managed separately via Video model
+                pass
+            elif video_type == Lesson.VideoType.NONE:
+                # Video content type but no video - this is allowed for flexibility
+                pass
 
         elif content_type == Lesson.ContentType.ARTICLE:
             if not article_content:
@@ -286,11 +345,73 @@ class LessonSerializer(serializers.ModelSerializer):
                     )
                 })
 
+        # Validate video type consistency
+        if video_type == Lesson.VideoType.EXTERNAL and not video_url:
+            raise serializers.ValidationError({
+                "video_url": (
+                    "Video URL is required when video_type is EXTERNAL."
+                )
+            })
+
         return attrs
 
 
+class VideoSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Video model.
+    Used for instructor video management.
+    """
+    class Meta:
+        model = Video
+        fields = [
+            "id",
+            "lesson",
+            "storage_key",
+            "storage_provider",
+            "original_filename",
+            "file_size",
+            "mime_type",
+            "duration_seconds",
+            "width",
+            "height",
+            "status",
+            "playback_url",
+            "thumbnail_url",
+            "created_at",
+            "updated_at",
+            "uploaded_at",
+            "processed_at",
+            "error_message",
+        ]
+        read_only_fields = [
+            "id",
+            "lesson",
+            "storage_key",
+            "created_at",
+            "updated_at",
+            "uploaded_at",
+            "processed_at",
+        ]
+
+
+class VideoPublicSerializer(serializers.ModelSerializer):
+    """
+    Public-facing serializer for Video model.
+    Exposes only necessary playback information for learners.
+    """
+    class Meta:
+        model = Video
+        fields = [
+            "status",
+            "playback_url",
+            "thumbnail_url",
+            "duration_seconds",
+        ]
+
 
 class LessonPublicSerializer(serializers.ModelSerializer):
+    hosted_video = VideoPublicSerializer(read_only=True)
+
     class Meta:
         model = Lesson
         fields = [
@@ -298,11 +419,13 @@ class LessonPublicSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "content_type",
+            "video_type",
             "video_url",
             "article_content",
             "duration_minutes",
             "order",
             "is_free_preview",
+            "hosted_video",
         ]
 
 

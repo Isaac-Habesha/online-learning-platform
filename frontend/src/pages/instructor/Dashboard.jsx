@@ -303,6 +303,12 @@ export const InstructorDashboard = () => {
                       Announce
                     </Button>
 
+                    <Link to={`/instructor/courses/${course.id}/announcements`}>
+                      <Button variant="secondary" size="sm" leftIcon={<Edit className="w-3.5 h-3.5" />}>
+                        Manage Announcements
+                      </Button>
+                    </Link>
+
                     <Button
                       variant="outline"
                       size="sm"

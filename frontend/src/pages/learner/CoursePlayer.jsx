@@ -13,6 +13,7 @@ import Badge from '../../components/common/Badge';
 import Modal from '../../components/common/Modal';
 import CertificateDownloadButton from '../../components/certificates/CertificateDownloadButton';
 import SupportChatDrawer from '../../components/chat/SupportChatDrawer';
+import VideoPlayer from '../../components/lessons/VideoPlayer';
 import {
   PlayCircle,
   FileText,
@@ -74,6 +75,15 @@ export const CoursePlayer = () => {
   const [assignmentFile, setAssignmentFile] = useState(null);
   const [mySubmissions, setMySubmissions] = useState([]);
   const [submittingAssignment, setSubmittingAssignment] = useState(false);
+
+  useEffect(() => {
+    if (
+      user?.role === 'LEARNER' &&
+      !sessionStorage.getItem(`course-announcements-visited-${courseId}`)
+    ) {
+      navigate(`/learner/courses/${courseId}/announcements`, { replace: true });
+    }
+  }, [courseId, navigate, user?.role]);
 
   // Fetch Course, Curriculum & Progress
   useEffect(() => {
@@ -602,21 +612,18 @@ export const CoursePlayer = () => {
 
           {currentLesson ? (
             <div className="space-y-6">
-              {/* Media Player Container */}
-              {currentLesson.video_url && (
-                <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl">
-                  <iframe
-                    src={getEmbedVideoUrl(currentLesson.video_url)}
-                    title={currentLesson.title}
-                    className="w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
+              {/* VIDEO Content - Handle both external and hosted videos */}
+              {currentLesson.content_type === 'VIDEO' && (
+                <VideoPlayer
+                  lesson={currentLesson}
+                  videoType={currentLesson.video_type}
+                  videoUrl={currentLesson.video_url}
+                  hostedVideo={currentLesson.hosted_video}
+                />
               )}
 
               {/* ARTICLE Content */}
-              {currentLesson.article_content && (
+              {currentLesson.content_type === 'ARTICLE' && currentLesson.article_content && (
                 <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-4">
                   <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
                     <FileText className="w-4 h-4" />
@@ -627,6 +634,7 @@ export const CoursePlayer = () => {
                   </div>
                 </div>
               )}
+
               {/* DOCUMENT Resource */}
               {currentLesson.content_type === 'DOCUMENT' && (
                 <div className="glass-panel p-8 rounded-3xl border border-slate-800 text-center space-y-4">

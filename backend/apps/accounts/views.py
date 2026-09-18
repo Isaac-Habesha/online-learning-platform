@@ -654,6 +654,12 @@ class GoogleLoginView(APIView):
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        except GoogleAuthenticationError as e:
+            logger.error(f"Google authentication error: {e}")
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
         except Exception as e:
             logger.error(f"Google login error: {e}")
             return Response(

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import Input from '../../components/common/Input';
@@ -7,7 +8,7 @@ import Button from '../../components/common/Button';
 import { Mail, Lock, User, UserCheck, ArrowRight, CheckCircle2, ShieldAlert } from 'lucide-react';
 
 export const Register = () => {
-  const { register } = useAuth();
+  const { register, googleLogin } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -21,6 +22,7 @@ export const Register = () => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
@@ -53,11 +55,11 @@ export const Register = () => {
       toast.success('Registration successful! Please verify your email.', 'Account Created');
     } catch (err) {
       let detail = 'Registration failed. Please check the provided information.';
-      
+
       // Extract detailed error message from response
       if (err.response?.data) {
         const errors = err.response.data;
-        
+
         // Check for specific field errors
         if (errors.email) {
           detail = Array.isArray(errors.email) ? errors.email[0] : errors.email;
@@ -80,6 +82,37 @@ export const Register = () => {
       toast.error(detail, 'Registration Error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleRegister = async (credentialResponse) => {
+    if (!credentialResponse?.credential) {
+      const detail = 'Google did not return a valid sign-up credential.';
+      setError(detail);
+      toast.error(detail, 'Google Registration Failed');
+      return;
+    }
+    setGoogleLoading(true);
+    setError('');
+
+    try {
+      const response = await googleLogin(credentialResponse.credential, formData.role);
+      toast.success(`Account created successfully! Welcome, ${response.user.first_name || response.user.email}!`, 'Google Registration Successful');
+
+      // Navigate to role dashboard
+      if (response.user.role === 'INSTRUCTOR') {
+        navigate('/instructor/dashboard', { replace: true });
+      } else {
+        navigate('/learner/dashboard', { replace: true });
+      }
+    } catch (err) {
+      const detail =
+        err.response?.data?.detail ||
+        'Google registration failed. Please try again.';
+      setError(detail);
+      toast.error(detail, 'Google Registration Failed');
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -231,6 +264,26 @@ export const Register = () => {
           Create Account
         </Button>
       </form>
+
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-slate-700"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-4 bg-slate-900 text-slate-400">Or sign up with</span>
+        </div>
+      </div>
+
+      <div className="flex justify-center">
+        <GoogleLogin
+          onSuccess={handleGoogleRegister}
+          onError={() => {
+            setError('Google registration failed. Please try again.');
+            toast.error('Google registration failed', 'Registration Error');
+          }}
+          disabled={googleLoading}
+        />
+      </div>
 
       <div className="text-center pt-2">
         <p className="text-sm text-slate-400">

@@ -6,10 +6,12 @@ import courseService from '../../services/courseService';
 import categoryService from '../../services/categoryService';
 import quizService from '../../services/quizService';
 import assignmentService from '../../services/assignmentService';
+import videoService from '../../services/videoService';
 import Loader from '../../components/common/Loader';
 import Button from '../../components/common/Button';
 import QuizBuilder from '../../components/instructor/QuizBuilder';
 import AssignmentBuilder from '../../components/instructor/AssignmentBuilder';
+import VideoUpload from '../../components/instructor/VideoUpload';
 import Input from '../../components/common/Input';
 import Modal from '../../components/common/Modal';
 import Badge from '../../components/common/Badge';
@@ -84,6 +86,7 @@ export const CourseBuilder = () => {
     title: '',
     description: '',
     content_type: 'VIDEO',
+    video_type: 'EXTERNAL',
     video_url: '',
     article_content: '',
     external_url: '',
@@ -93,6 +96,8 @@ export const CourseBuilder = () => {
     is_published: true,
   });
   const [lessonDocumentFile, setLessonDocumentFile] = useState(null);
+  const [lessonVideoFile, setLessonVideoFile] = useState(null);
+  const [videoUploadModalOpen, setVideoUploadModalOpen] = useState(false);
 
   // Quiz Modal State
   const [quizModalOpen, setQuizModalOpen] = useState(false);
@@ -330,6 +335,7 @@ export const CourseBuilder = () => {
         title: lesson.title,
         description: lesson.description || '',
         content_type: lesson.content_type || 'VIDEO',
+        video_type: lesson.video_type || 'EXTERNAL',
         video_url: lesson.video_url || '',
         article_content: lesson.article_content || '',
         external_url: lesson.external_url || '',
@@ -339,6 +345,7 @@ export const CourseBuilder = () => {
         is_published: lesson.is_published ?? true,
       });
       setLessonDocumentFile(null);
+      setLessonVideoFile(null);
     } else {
       const targetSec = sections.find((s) => s.id === sectionId);
       setEditingLesson(null);
@@ -346,6 +353,7 @@ export const CourseBuilder = () => {
         title: '',
         description: '',
         content_type: 'VIDEO',
+        video_type: 'EXTERNAL',
         video_url: '',
         article_content: '',
         external_url: '',
@@ -355,6 +363,7 @@ export const CourseBuilder = () => {
         is_published: true,
       });
       setLessonDocumentFile(null);
+      setLessonVideoFile(null);
     }
     setLessonModalOpen(true);
   };
@@ -368,13 +377,17 @@ export const CourseBuilder = () => {
       formData.append('title', lessonForm.title);
       formData.append('description', lessonForm.description);
       formData.append('content_type', lessonForm.content_type);
+      formData.append('video_type', lessonForm.video_type);
       formData.append('duration_minutes', lessonForm.duration_minutes);
       formData.append('order', lessonForm.order);
       formData.append('is_free_preview', lessonForm.is_free_preview);
       formData.append('is_published', lessonForm.is_published);
 
       if (lessonForm.content_type === 'VIDEO') {
-        formData.append('video_url', lessonForm.video_url);
+        if (lessonForm.video_type === 'EXTERNAL') {
+          formData.append('video_url', lessonForm.video_url);
+        }
+        // For HOSTED video, the video will be uploaded separately
       } else if (lessonForm.content_type === 'ARTICLE') {
         formData.append('article_content', lessonForm.article_content);
       } else if (lessonForm.content_type === 'DOCUMENT') {
@@ -385,13 +398,39 @@ export const CourseBuilder = () => {
         formData.append('external_url', lessonForm.external_url);
       }
 
+      let savedLesson;
       if (editingLesson) {
-        await courseService.updateLesson(editingLesson.id, formData);
+        savedLesson = await courseService.updateLesson(editingLesson.id, formData);
         toast.success('Lesson updated!', 'Saved');
       } else {
-        await courseService.createLesson(activeSectionId, formData);
+        savedLesson = await courseService.createLesson(activeSectionId, formData);
         toast.success('New lesson added!', 'Added');
       }
+
+      // Handle video upload for HOSTED video type
+      if (lessonForm.content_type === 'VIDEO' && lessonForm.video_type === 'HOSTED' && lessonVideoFile) {
+        try {
+          // Validate video file
+          const validation = videoService.validateVideoFile(lessonVideoFile);
+          if (!validation.isValid) {
+            toast.error(validation.error, 'Video Error');
+            return;
+          }
+
+          // Upload video
+          console.log('Starting video upload for lesson:', savedLesson.id);
+          const uploadResponse = await videoService.uploadVideo(savedLesson.id, lessonVideoFile);
+          console.log('Video upload successful:', uploadResponse);
+          toast.success('Video uploaded successfully!', 'Success');
+          setLessonVideoFile(null);
+        } catch (videoErr) {
+          console.error('Video upload error:', videoErr);
+          console.error('Error response:', videoErr.response);
+          const errorMsg = videoErr.response?.data?.detail || videoErr.message || 'Unknown error';
+          toast.error(`Video upload failed: ${errorMsg}. You can upload it later from the lesson edit.`, 'Video Upload Error');
+        }
+      }
+
       setLessonModalOpen(false);
       refreshCurriculum(id);
     } catch (err) {
@@ -1139,6 +1178,18 @@ export const CourseBuilder = () => {
                           </div>
 
                           <div className="flex items-center gap-1.5">
+                            {lesson.content_type === 'VIDEO' && (
+                              <button
+                                onClick={() => {
+                                  setEditingLesson(lesson);
+                                  setVideoUploadModalOpen(true);
+                                }}
+                                className="p-1.5 rounded-lg text-sky-400 hover:text-white hover:bg-sky-500/10"
+                                title="Upload/Replace Video"
+                              >
+                                <UploadCloud className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleOpenLessonModal(section.id, lesson)}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
@@ -1507,14 +1558,85 @@ export const CourseBuilder = () => {
 
           {/* Conditional Inputs based on Content Type */}
           {lessonForm.content_type === 'VIDEO' && (
-            <Input
-              label="Video Embed URL (YouTube or Vimeo)"
-              type="url"
-              required
-              placeholder="https://www.youtube.com/watch?v=..."
-              value={lessonForm.video_url}
-              onChange={(e) => setLessonForm((prev) => ({ ...prev, video_url: e.target.value }))}
-            />
+            <div className="space-y-4">
+              {/* Video Type Selection */}
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  Video Source
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { type: 'EXTERNAL', label: 'External URL', description: 'YouTube, Vimeo, etc.' },
+                    { type: 'HOSTED', label: 'Upload Video', description: 'Upload to cloud storage' },
+                    { type: 'NONE', label: 'No Video', description: 'Remove video' },
+                  ].map((item) => {
+                    const active = lessonForm.video_type === item.type;
+                    return (
+                      <button
+                        type="button"
+                        key={item.type}
+                        onClick={() => setLessonForm((prev) => ({ ...prev, video_type: item.type }))}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          active
+                            ? 'bg-sky-600 text-white border-sky-500 shadow-glow-sm'
+                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="text-xs font-semibold">{item.label}</div>
+                        <div className="text-[10px] opacity-75 mt-0.5">{item.description}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* External Video URL Input */}
+              {lessonForm.video_type === 'EXTERNAL' && (
+                <Input
+                  label="Video Embed URL (YouTube or Vimeo)"
+                  type="url"
+                  required
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  value={lessonForm.video_url}
+                  onChange={(e) => setLessonForm((prev) => ({ ...prev, video_url: e.target.value }))}
+                />
+              )}
+
+              {/* Hosted Video Upload */}
+              {lessonForm.video_type === 'HOSTED' && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                    Upload Video File (MP4, WebM, MOV, AVI, MKV - Max 2GB)
+                  </label>
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,.mp4,.webm,.mov,.avi,.mkv"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          // Validate that it's actually a video file
+                          if (!file.type.startsWith('video/')) {
+                            toast.error('Only video files are allowed. Please select a valid video file.', 'Invalid File');
+                            e.target.value = ''; // Clear the input
+                            return;
+                          }
+                          setLessonVideoFile(file);
+                        } else {
+                          setLessonVideoFile(null);
+                        }
+                      }}
+                      className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-sky-500/10 file:text-sky-400 hover:file:bg-sky-500/20"
+                    />
+                    {lessonVideoFile && (
+                      <div className="mt-2 text-xs text-sky-400">
+                        Selected: {lessonVideoFile.name} ({(lessonVideoFile.size / (1024 * 1024)).toFixed(2)} MB)
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {lessonForm.content_type === 'ARTICLE' && (
@@ -1704,6 +1826,27 @@ export const CourseBuilder = () => {
             </div>
           )}
         </div>
+      </Modal>
+
+      {/* VIDEO UPLOAD MODAL */}
+      <Modal
+        isOpen={videoUploadModalOpen}
+        onClose={() => setVideoUploadModalOpen(false)}
+        title={editingLesson?.hosted_video ? 'Replace Video' : 'Upload Video'}
+        maxWidth="max-w-xl"
+      >
+        {editingLesson && (
+          <VideoUpload
+            lessonId={editingLesson.id}
+            existingVideo={editingLesson.hosted_video}
+            onUploadSuccess={() => {
+              setVideoUploadModalOpen(false);
+              refreshCurriculum(id);
+              toast.success('Video uploaded successfully!', 'Success');
+            }}
+            onCancel={() => setVideoUploadModalOpen(false)}
+          />
+        )}
       </Modal>
     </div>
   );

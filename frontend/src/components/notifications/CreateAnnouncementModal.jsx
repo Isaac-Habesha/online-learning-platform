@@ -53,13 +53,20 @@ export const CreateAnnouncementModal = ({
 
     setSubmitting(true);
     try {
-      await notificationService.createNotification({
-        courseId: Number(selectedCourseId),
-        recipientId: preselectedStudent ? preselectedStudent.id : null,
-        title: title.trim(),
-        body: body.trim(),
-        type: preselectedStudent ? 'INSTRUCTOR_MESSAGE' : 'COURSE_ANNOUNCEMENT',
-      });
+      if (preselectedStudent) {
+        await notificationService.createNotification({
+          courseId: Number(selectedCourseId),
+          recipientId: preselectedStudent.id,
+          title: title.trim(),
+          body: body.trim(),
+          type: 'INSTRUCTOR_MESSAGE',
+        });
+      } else {
+        await courseService.createAnnouncement(Number(selectedCourseId), {
+          title: title.trim(),
+          message: body.trim(),
+        });
+      }
 
       toast.success(
         preselectedStudent

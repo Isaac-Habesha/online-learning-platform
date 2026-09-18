@@ -19,10 +19,11 @@ class NotificationSerializer(serializers.ModelSerializer):
             "sender",
             "sender_name",
             "recipient",
+            "conversation",
             "created_at",
             "is_read",
         ]
-        read_only_fields = ["id", "created_at", "sender", "is_read"]
+        read_only_fields = ["id", "created_at", "sender", "conversation", "is_read"]
 
     def get_sender_name(self, obj):
         if not obj.sender:

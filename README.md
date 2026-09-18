@@ -40,6 +40,29 @@ This backend provides a complete REST API for an online learning platform with t
 - **Quizzes**: Create, take, submit, and review quizzes
 - **Assignments**: Create assignments, submit work, and grade submissions
 - **Reviews**: Rate and review courses
+- **Messaging Notifications**: Learner messages create unread instructor notifications that open the related conversation.
+- **Course Announcements**: Enrolled learners enter a course through its announcement page before opening lessons.
+- **Announcement Management**: Course instructors can create and edit announcements, including optional live-stream links.
+
+## Course Announcements and Messaging
+
+The learner course flow is:
+
+```text
+My Courses -> Course Announcements -> Lessons
+```
+
+Announcements are stored as course-owned records and are available only to enrolled learners, the course instructor, or administrators. Instructors manage them at `/instructor/courses/:id/announcements` and can edit the title, message, and optional `https://` live-stream URL.
+
+The announcement API is:
+
+```text
+GET   /api/courses/:courseId/announcements/
+POST  /api/courses/:courseId/announcements/
+PATCH /api/courses/announcements/:announcementId/
+```
+
+When a learner sends a chat message, the existing chat persistence path also creates an unread `CHAT_MESSAGE` notification for the course instructor. The notification includes the course and conversation ID; selecting it opens the existing instructor conversation view. Notification reads remain scoped to the authenticated user.
 
 ## 🛠 Tech Stack
 
@@ -135,6 +158,26 @@ npm run dev
 
 The frontend runs at `http://localhost:5173/` and the API runs at `http://127.0.0.1:8000/`.
 
+### Production deployment
+
+Run the Django API with the production settings and a WSGI server:
+
+```bash
+cd backend
+DJANGO_SETTINGS_MODULE=config.settings.production python manage.py migrate
+DJANGO_SETTINGS_MODULE=config.settings.production python manage.py collectstatic --noinput
+gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120
+```
+
+Run the realtime chat service as a separate process:
+
+```bash
+cd backend
+DJANGO_SETTINGS_MODULE=config.settings.production python start_chat_server.py $SOCKET_PORT
+```
+
+Set `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `DATABASE_URL`, `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, storage credentials, email credentials, and Google OAuth settings in the deployment environment. Do not commit `.env` files or local SQLite databases.
+
 5. **Create an administrator** (optional)
 ```bash
 cd backend
@@ -176,6 +219,18 @@ DEFAULT_FROM_EMAIL=Online Learning Platform <your-gmail@gmail.com>
 # Celery Configuration
 CELERY_BROKER_URL=redis://127.0.0.1:6379/0
 CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/1
+
+# Supabase Storage (S3-compatible)
+SUPABASE_PROJECT_URL=your-supabase-project-url
+SUPABASE_S3_ACCESS_KEY_ID=your-supabase-access-key
+SUPABASE_S3_SECRET_ACCESS_KEY=your-supabase-secret-key
+SUPABASE_S3_ENDPOINT_URL=your-supabase-s3-endpoint
+SUPABASE_S3_BUCKET_NAME=media
+SUPABASE_S3_REGION=us-east-1
+USE_SUPABASE_STORAGE=True
+
+# Video Upload Settings
+MAX_VIDEO_UPLOAD_SIZE_MB=2048  # 2GB default
 
 # Google OAuth
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
@@ -230,7 +285,7 @@ http://localhost:8000/api/schema/
 | POST | `/api/accounts/register/` | Register new user | No |
 | POST | `/api/accounts/login/` | Login with email/password | No |
 | POST | `/api/accounts/admin/login/` | Admin login (no email verification) | No |
-| POST | `/api/accounts/google/login/` | Login with Google OAuth | No |
+| POST | `/api/accounts/google/` | Login or sign up with Google OAuth | No |
 | POST | `/api/accounts/logout/` | Logout and blacklist token | Yes |
 | GET | `/api/accounts/me/` | Get current user info | Yes |
 | GET/PATCH | `/api/accounts/profile/` | Get or update user profile | Yes |
@@ -320,16 +375,22 @@ Tokens are stored as hashes, expire after 24 hours, and can only be used once. T
 - **Course**: Main course entity
 - **CourseSection**: Sections within a course
 - **Lesson**: Individual lessons within sections
+- **Video**: Hosted video files with processing lifecycle
 
 #### Key Features
 
 - Course lifecycle management (Draft → Published → Archived)
 - Multi-section course structure
 - Multiple lesson content types (Video, Article, Document, External)
+- Video type support (External, Hosted, None)
 - Free preview lesson support
 - Course filtering and search
 - Instructor ownership management
 - Course publishing workflow
+- **Video Hosting**: Platform-hosted video upload and management
+- **Storage Abstraction**: S3-compatible storage (Supabase) with future migration support
+- **Video Processing**: Lifecycle management (PENDING → UPLOADING → UPLOADED → PROCESSING → READY/FAILED)
+- **Secure Playback**: Enrollment-based access control for hosted videos
 
 #### API Endpoints
 
@@ -353,6 +414,11 @@ Tokens are stored as hashes, expire after 24 hours, and can only be used once. T
 | GET | `/api/courses/lessons/{id}/` | Get lesson details | Yes |
 | PATCH | `/api/courses/lessons/{id}/` | Update lesson | Owner/Admin only |
 | DELETE | `/api/courses/lessons/{id}/` | Delete lesson | Owner/Admin only |
+| POST | `/api/courses/lessons/{lesson_id}/video/upload/` | Upload video for lesson | Owner/Admin only |
+| POST | `/api/courses/lessons/{lesson_id}/video/replace/` | Replace existing video | Owner/Admin only |
+| GET | `/api/courses/lessons/{lesson_id}/video/playback/` | Get video playback info | Enrolled learners only |
+| GET | `/api/courses/videos/{video_id}/` | Get video details | Owner/Admin only |
+| DELETE | `/api/courses/videos/{video_id}/` | Delete video | Owner/Admin only |
 
 #### Course Status
 
@@ -371,10 +437,49 @@ Tokens are stored as hashes, expire after 24 hours, and can only be used once. T
 
 #### Lesson Content Types
 
-- **VIDEO**: Video lesson (requires `video_url`)
+- **VIDEO**: Video lesson (requires `video_url` for EXTERNAL type or hosted video)
 - **ARTICLE**: Text-based lesson (requires `article_content`)
 - **DOCUMENT**: Document upload (requires `document` file)
 - **EXTERNAL**: External resource (requires `external_url`)
+
+#### Video Types
+
+- **NONE**: No video associated with lesson
+- **EXTERNAL**: External video URL (YouTube, Vimeo, etc.)
+- **HOSTED**: Platform-hosted video with secure playback
+
+#### Video Hosting Features
+
+**Storage Configuration**
+- S3-compatible storage via Supabase
+- Configurable via `USE_SUPABASE_STORAGE` setting
+- Storage path format: `videos/courses/{course_id}/lessons/{lesson_id}/{uuid}.ext`
+- Server-generated storage keys (UUID-based for security)
+
+**Upload Validation**
+- File size limit: 2GB (configurable via `MAX_VIDEO_UPLOAD_SIZE_MB`)
+- Allowed formats: MP4, WebM, MOV, AVI, MKV
+- MIME type validation
+- File extension validation
+
+**Video Lifecycle**
+- **PENDING**: Video record created, awaiting upload
+- **UPLOADING**: Upload in progress
+- **UPLOADED**: Upload complete, awaiting processing
+- **PROCESSING**: Video being processed (transcoding, thumbnail generation)
+- **READY**: Video ready for playback
+- **FAILED**: Processing failed (error details available)
+
+**Access Control**
+- Instructors can upload videos to their own lessons only
+- Learners can access hosted videos only if enrolled in the course
+- Admin users have full access
+- Video playback requires enrollment verification
+
+**Backward Compatibility**
+- Existing lessons with `video_url` automatically marked as EXTERNAL
+- External video URLs continue to work without changes
+- New hosted video feature is additive, not breaking
 
 ---
 

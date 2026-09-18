@@ -8,6 +8,7 @@ class Notification(models.Model):
     class Type(models.TextChoices):
         COURSE_ANNOUNCEMENT = "COURSE_ANNOUNCEMENT", "Course Announcement"
         INSTRUCTOR_MESSAGE = "INSTRUCTOR_MESSAGE", "Instructor Learning Notice"
+        CHAT_MESSAGE = "CHAT_MESSAGE", "Chat Message"
         SYSTEM = "SYSTEM", "System Notification"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -24,6 +25,13 @@ class Notification(models.Model):
     )
     recipient = models.ForeignKey(
         User, on_delete=models.CASCADE, null=True, blank=True, related_name="direct_notifications"
+    )
+    conversation = models.ForeignKey(
+        "chat.Conversation",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="notifications",
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

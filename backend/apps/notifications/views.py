@@ -127,6 +127,28 @@ class MarkNotificationReadView(APIView):
     )
     def post(self, request, notification_id):
         notification = get_object_or_404(Notification, id=notification_id)
+        enrolled_course_ids = Enrollment.objects.filter(
+            learner=request.user,
+            status__in=[Enrollment.Status.ACTIVE, Enrollment.Status.COMPLETED],
+        ).values_list("course_id", flat=True)
+        can_access = (
+            notification.recipient_id == request.user.id
+            or (
+                notification.recipient_id is None
+                and notification.course_id in enrolled_course_ids
+            )
+            or (
+                notification.recipient_id is None
+                and notification.course_id is None
+            )
+            or (
+                request.user.role == User.Role.INSTRUCTOR
+                and notification.course
+                and notification.course.instructor_id == request.user.id
+            )
+        )
+        if not can_access:
+            return Response({"detail": "Notification not found."}, status=status.HTTP_404_NOT_FOUND)
         NotificationRead.objects.get_or_create(user=request.user, notification=notification)
         return Response({"status": "success"}, status=status.HTTP_200_OK)
 

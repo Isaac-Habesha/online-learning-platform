@@ -1,5 +1,6 @@
 from django.utils import timezone
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -13,8 +14,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 from apps.accounts.models import User
+from apps.enrollments.models import Enrollment
 
 from .models import (
+    Announcement,
     Course,
     CourseSection,
     Lesson,
@@ -34,6 +37,7 @@ from .services import (
 )
 
 from .serializers import (
+    AnnouncementSerializer,
     CourseSectionSerializer,
     CourseSerializer,
     LessonSerializer,
@@ -49,20 +53,37 @@ class CourseListCreateView(ListCreateAPIView):
         if self.request.method == "POST":
             return [IsInstructor()]
 
+        # GET requests need authentication for instructors to see their courses
+        if self.request.method == "GET" and self.request.user.is_authenticated and getattr(self.request.user, 'role', '') == 'INSTRUCTOR':
+            return [IsAuthenticated()]
+
         return [AllowAny()]
 
     def get_queryset(self):
-        courses = (
-            Course.objects
-            .filter(
-                status=Course.Status.PUBLISHED,
+        # If user is authenticated instructor, return their own courses (all statuses)
+        if self.request.user.is_authenticated and getattr(self.request.user, 'role', '') == 'INSTRUCTOR':
+            courses = (
+                Course.objects
+                .filter(instructor=self.request.user)
+                .select_related(
+                    "instructor",
+                    "category",
+                    "category__parent",
+                )
             )
-            .select_related(
-                "instructor",
-                "category",
-                "category__parent",
+        else:
+            # Public users see only published courses
+            courses = (
+                Course.objects
+                .filter(
+                    status=Course.Status.PUBLISHED,
+                )
+                .select_related(
+                    "instructor",
+                    "category",
+                    "category__parent",
+                )
             )
-        )
 
         search = self.request.query_params.get("search")
         category = self.request.query_params.get("category")
@@ -942,8 +963,8 @@ class CourseCurriculumView(APIView):
         user = request.user
         is_instructor_or_admin = (
             user.is_authenticated and (
-                user.is_staff or 
-                getattr(user, 'role', '') == 'ADMIN' or 
+                user.is_staff or
+                getattr(user, 'role', '') == 'ADMIN' or
                 course_qs.filter(instructor=user).exists()
             )
         )
@@ -975,6 +996,73 @@ class CourseCurriculumView(APIView):
             serializer.data,
             status=status.HTTP_200_OK,
         )
+
+
+def can_view_announcements(user, course):
+    if user.role == User.Role.ADMIN or (
+        user.role == User.Role.INSTRUCTOR and course.instructor_id == user.id
+    ):
+        return True
+    return Enrollment.objects.filter(
+        learner=user,
+        course=course,
+        status__in=[Enrollment.Status.ACTIVE, Enrollment.Status.COMPLETED],
+    ).exists()
+
+
+class CourseAnnouncementListCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, course_id):
+        course = get_object_or_404(Course, pk=course_id)
+        if not can_view_announcements(request.user, course):
+            return Response({"detail": "You do not have access to this course."}, status=status.HTTP_403_FORBIDDEN)
+        announcements = Announcement.objects.filter(course=course).select_related("course", "instructor")
+        return Response(AnnouncementSerializer(announcements, many=True).data)
+
+    def post(self, request, course_id):
+        course = get_object_or_404(Course, pk=course_id)
+        if not (request.user.role == User.Role.ADMIN or course.instructor_id == request.user.id):
+            return Response({"detail": "You can only manage announcements for your own courses."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = AnnouncementSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        announcement = serializer.save(course=course, instructor=request.user)
+
+        from apps.notifications.models import Notification
+        Notification.objects.create(
+            type=Notification.Type.COURSE_ANNOUNCEMENT,
+            title=announcement.title,
+            body=announcement.message,
+            course=course,
+            sender=request.user,
+        )
+        return Response(AnnouncementSerializer(announcement).data, status=status.HTTP_201_CREATED)
+
+
+class CourseAnnouncementDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, announcement_id):
+        return get_object_or_404(
+            Announcement.objects.select_related("course", "instructor"),
+            pk=announcement_id,
+        )
+
+    def get(self, request, announcement_id):
+        announcement = self.get_object(announcement_id)
+        if not can_view_announcements(request.user, announcement.course):
+            return Response({"detail": "You do not have access to this course."}, status=status.HTTP_403_FORBIDDEN)
+        return Response(AnnouncementSerializer(announcement).data)
+
+    def patch(self, request, announcement_id):
+        announcement = self.get_object(announcement_id)
+        if not (request.user.role == User.Role.ADMIN or announcement.course.instructor_id == request.user.id):
+            return Response({"detail": "You can only edit announcements for your own courses."}, status=status.HTTP_403_FORBIDDEN)
+        serializer = AnnouncementSerializer(announcement, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class CourseStudentsView(APIView):

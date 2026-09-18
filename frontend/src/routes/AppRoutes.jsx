@@ -30,6 +30,7 @@ import ResetPassword from '../pages/auth/ResetPassword';
 // Learner Pages
 import LearnerDashboard from '../pages/learner/Dashboard';
 import CoursePlayer from '../pages/learner/CoursePlayer';
+import CourseAnnouncements from '../pages/learner/CourseAnnouncements';
 import MyProgress from '../pages/learner/MyProgress';
 import Bookmarks from '../pages/learner/Bookmarks';
 
@@ -38,6 +39,7 @@ import InstructorDashboard from '../pages/instructor/Dashboard';
 import CourseBuilder from '../pages/instructor/CourseBuilder';
 import GradingQueue from '../pages/instructor/GradingQueue';
 import InstructorMessages from '../pages/instructor/Messages';
+import InstructorAnnouncements from '../pages/instructor/Announcements';
 
 // Common UI
 import Button from '../components/common/Button';
@@ -93,6 +95,7 @@ export const AppRoutes = () => {
         <Route path="/learner/dashboard" element={<LearnerDashboard />} />
         <Route path="/learner/progress" element={<MyProgress />} />
         <Route path="/learner/bookmarks" element={<Bookmarks />} />
+        <Route path="/learner/courses/:courseId/announcements" element={<CourseAnnouncements />} />
       </Route>
 
       {/* Classroom Player (Learners, Instructors previewing content, and Admins) */}
@@ -126,6 +129,7 @@ export const AppRoutes = () => {
         <Route path="/instructor/courses/:id/edit" element={<CourseBuilder />} />
         <Route path="/instructor/grading" element={<GradingQueue />} />
         <Route path="/instructor/messages" element={<InstructorMessages />} />
+        <Route path="/instructor/courses/:id/announcements" element={<InstructorAnnouncements />} />
       </Route>
 
       {/* 5. CATCH-ALL 404 */}

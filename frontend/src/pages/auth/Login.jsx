@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import Input from '../../components/common/Input';
@@ -7,7 +8,7 @@ import Button from '../../components/common/Button';
 import { Mail, Lock, LogIn, ArrowRight, AlertCircle } from 'lucide-react';
 
 export const Login = () => {
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -18,6 +19,7 @@ export const Login = () => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [isUnverified, setIsUnverified] = useState(false);
 
@@ -61,6 +63,40 @@ export const Login = () => {
       toast.error(detail, 'Login Failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async (credentialResponse) => {
+    if (!credentialResponse?.credential) {
+      const detail = 'Google did not return a valid sign-in credential.';
+      setError(detail);
+      toast.error(detail, 'Google Login Failed');
+      return;
+    }
+    setGoogleLoading(true);
+    setError('');
+
+    try {
+      const response = await googleLogin(credentialResponse.credential);
+      toast.success(`Welcome back, ${response.user.first_name || response.user.email}!`, 'Google Login Successful');
+
+      // Navigate to previous location or role dashboard
+      const from = location.state?.from?.pathname;
+      if (from) {
+        navigate(from, { replace: true });
+      } else if (response.user.role === 'INSTRUCTOR') {
+        navigate('/instructor/dashboard', { replace: true });
+      } else {
+        navigate('/learner/dashboard', { replace: true });
+      }
+    } catch (err) {
+      const detail =
+        err.response?.data?.detail ||
+        'Google login failed. Please try again.';
+      setError(detail);
+      toast.error(detail, 'Google Login Failed');
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -136,6 +172,26 @@ export const Login = () => {
           Sign In
         </Button>
       </form>
+
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-slate-700"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-4 bg-slate-900 text-slate-400">Or continue with</span>
+        </div>
+      </div>
+
+      <div className="flex justify-center">
+        <GoogleLogin
+          onSuccess={handleGoogleLogin}
+          onError={() => {
+            setError('Google login failed. Please try again.');
+            toast.error('Google login failed', 'Login Error');
+          }}
+          disabled={googleLoading}
+        />
+      </div>
 
       <div className="text-center pt-2">
         <p className="text-sm text-slate-400">

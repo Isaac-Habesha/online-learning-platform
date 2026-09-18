@@ -83,6 +83,13 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  // Google Login handler
+  const googleLogin = async (credential, role = null) => {
+    const data = await authService.googleLogin(credential, role);
+    persistAuth(data.user, data.tokens);
+    return data;
+  };
+
   // Logout handler
   const logout = async () => {
     const refresh = localStorage.getItem('refresh_token');
@@ -137,6 +144,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateUser,
         refreshUserProfile,
+        googleLogin,
       }}
     >
       {children}

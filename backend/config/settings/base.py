@@ -334,14 +334,17 @@ SOCIALACCOUNT_PROVIDERS = {
 
 GOOGLE_CLIENT_ID = config(
     "GOOGLE_CLIENT_ID",
+    default="",
 )
 
 GOOGLE_CLIENT_SECRET = config(
     "GOOGLE_CLIENT_SECRET",
+    default="",
 )
 
 GOOGLE_REDIRECT_URI = config(
     "GOOGLE_REDIRECT_URI",
+    default="",
 )
 
 # Chapa Payment Gateway
@@ -350,3 +353,6 @@ CHAPA_PUBLIC_KEY = config("CHAPA_PUBLIC_KEY", default="CHAPUBK_TEST-w5mSwC3P6WlQ
 CHAPA_WEBHOOK_SECRET = config("CHAPA_WEBHOOK_SECRET", default="Biruk@123")
 CHAPA_BASE_URL = config("CHAPA_BASE_URL", default="https://api.chapa.co/v1")
 BACKEND_URL = config("BACKEND_URL", default="http://localhost:8000")
+
+# Video Upload Settings
+MAX_VIDEO_UPLOAD_SIZE_MB = config("MAX_VIDEO_UPLOAD_SIZE_MB", cast=int, default=2048)  # 2GB default

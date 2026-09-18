@@ -127,6 +127,18 @@ class MessageListCreateView(APIView):
         conv.updated_at = timezone.now()
         conv.save(update_fields=["updated_at"])
 
+        if request.user == conv.student:
+            from apps.notifications.models import Notification
+            Notification.objects.create(
+                type=Notification.Type.CHAT_MESSAGE,
+                title=f"New message from {request.user.get_full_name() or request.user.email}",
+                body=f"{request.user.get_full_name() or request.user.email} sent you a new message in {conv.course.title}.",
+                course=conv.course,
+                sender=request.user,
+                recipient=conv.instructor,
+                conversation=conv,
+            )
+
         serializer = MessageSerializer(msg)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 

@@ -135,7 +135,7 @@ export const CourseDetail = () => {
         await enrollmentService.enroll(Number(id));
         setIsEnrolled(true);
         toast.success(`You are now enrolled in ${course.title}!`, 'Enrollment Confirmed');
-        navigate(`/learner/courses/${id}/player`);
+        navigate(`/learner/courses/${id}/announcements`);
       }
     } catch (err) {
       const detail = err.response?.data?.detail || err.message || 'Unable to complete enrollment.';
@@ -272,7 +272,7 @@ export const CourseDetail = () => {
                   </div>
 
                   {isEnrolled ? (
-                    <Link to={`/learner/courses/${id}/player`} className="block w-full">
+                    <Link to={`/learner/courses/${id}/announcements`} className="block w-full">
                       <Button variant="success" size="lg" className="w-full" rightIcon={<ArrowRight className="w-4 h-4" />}>
                         Go to Classroom
                       </Button>
