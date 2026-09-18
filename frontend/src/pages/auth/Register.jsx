@@ -274,12 +274,22 @@ export const Register = () => {
         </div>
       </div>
 
-      <div className="flex justify-center">
+      <div className="flex justify-center rounded-xl overflow-hidden [&>div]:w-full [&>div>div]:w-full">
         <GoogleLogin
           onSuccess={handleGoogleRegister}
+          useOneTap={false}
+          auto_select={false}
+          ux_mode="popup"
+          text="signup_with"
+          theme="filled_blue"
+          shape="rectangular"
+          size="large"
+          width="360"
           onError={() => {
-            setError('Google registration failed. Please try again.');
-            toast.error('Google registration failed', 'Registration Error');
+            const detail =
+              'Google sign-up was blocked. Check that this site origin is authorized for the configured Google Web client.';
+            setError(detail);
+            toast.error(detail, 'Registration Error');
           }}
           disabled={googleLoading}
         />

@@ -163,7 +163,9 @@ class CourseDetailView(APIView):
     def get_object(self, pk):
         try:
             return Course.objects.select_related(
-                "instructor"
+                "instructor",
+                "category",
+                "category__parent",
             ).get(pk=pk)
 
         except Course.DoesNotExist:
@@ -975,7 +977,7 @@ class CourseCurriculumView(APIView):
             course_qs
             .select_related("instructor")
             .prefetch_related(
-                "sections__lessons"
+                "sections__lessons__hosted_video"
             )
             .first()
         )

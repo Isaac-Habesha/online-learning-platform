@@ -422,6 +422,8 @@ class LessonPublicSerializer(serializers.ModelSerializer):
             "video_type",
             "video_url",
             "article_content",
+            "document",
+            "external_url",
             "duration_minutes",
             "order",
             "is_free_preview",

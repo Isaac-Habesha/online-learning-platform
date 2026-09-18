@@ -197,7 +197,7 @@ async def on_message_read(sid, data):
     @sync_to_async
     def mark_read():
         from django.utils import timezone
-        conv = Conversation.objects.filter(id=conv_id).first()
+        conv = Conversation.objects.filter(id=conv_id).select_related("student", "instructor").first()
         if conv:
             conv.messages.filter(read_at__isnull=True).exclude(sender_id=user_id).update(read_at=timezone.now())
 

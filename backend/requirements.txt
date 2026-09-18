@@ -49,3 +49,4 @@ django-storages
 boto3
 gunicorn==23.0.0
 uvicorn[standard]==0.34.0
+python-socketio==5.13.0

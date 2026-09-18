@@ -29,7 +29,7 @@ class NotificationListCreateView(APIView):
         enrolled_course_ids = Enrollment.objects.filter(
             learner=user,
             status__in=[Enrollment.Status.ACTIVE, Enrollment.Status.COMPLETED],
-        ).values_list("course_id", flat=True)
+        ).select_related("course").values_list("course_id", flat=True)
 
         # Instructor courses
         instructor_course_ids = Course.objects.filter(
@@ -42,7 +42,7 @@ class NotificationListCreateView(APIView):
             Q(recipient=user) |
             Q(course_id__in=relevant_course_ids, recipient__isnull=True) |
             Q(course__isnull=True, recipient__isnull=True)
-        ).select_related("course", "sender").order_by("-created_at")[:50]
+        ).select_related("course", "sender", "conversation").prefetch_related("conversation__student", "conversation__instructor").order_by("-created_at")[:50]
 
         # Read notification IDs
         read_notification_ids = set(
@@ -130,7 +130,7 @@ class MarkNotificationReadView(APIView):
         enrolled_course_ids = Enrollment.objects.filter(
             learner=request.user,
             status__in=[Enrollment.Status.ACTIVE, Enrollment.Status.COMPLETED],
-        ).values_list("course_id", flat=True)
+        ).select_related("course").values_list("course_id", flat=True)
         can_access = (
             notification.recipient_id == request.user.id
             or (
@@ -165,13 +165,13 @@ class MarkAllNotificationsReadView(APIView):
         enrolled_course_ids = Enrollment.objects.filter(
             learner=user,
             status__in=[Enrollment.Status.ACTIVE, Enrollment.Status.COMPLETED],
-        ).values_list("course_id", flat=True)
+        ).select_related("course").values_list("course_id", flat=True)
 
         notifications = Notification.objects.filter(
             Q(recipient=user) |
             Q(course_id__in=enrolled_course_ids, recipient__isnull=True) |
             Q(course__isnull=True, recipient__isnull=True)
-        )
+        ).select_related("course", "sender", "conversation")
 
         existing_read_ids = set(
             NotificationRead.objects.filter(user=user).values_list("notification_id", flat=True)

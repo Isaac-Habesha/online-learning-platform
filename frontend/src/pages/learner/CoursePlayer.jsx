@@ -58,6 +58,7 @@ export const CoursePlayer = () => {
   // Sub-features state (Quizzes, Assignments, Reviews)
   const [lessonQuizzes, setLessonQuizzes] = useState([]);
   const [lessonAssignments, setLessonAssignments] = useState([]);
+  const [lessonResources, setLessonResources] = useState({});
   const [courseReviews, setCourseReviews] = useState([]);
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
@@ -111,6 +112,20 @@ export const CoursePlayer = () => {
         const sections = curriculumData?.sections || [];
         const allLessons = sections.flatMap((sec) => sec.lessons || []);
 
+        const resourceEntries = await Promise.all(
+          allLessons.map(async (lesson) => {
+            const [quizzesData, assignmentsData] = await Promise.all([
+              quizService.getQuizzes({ lesson: lesson.id }).catch(() => ({ results: [] })),
+              assignmentService.getAssignments({ lesson: lesson.id }).catch(() => ({ results: [] })),
+            ]);
+            return [lesson.id, {
+              quizzes: Array.isArray(quizzesData) ? quizzesData : quizzesData.results || [],
+              assignments: Array.isArray(assignmentsData) ? assignmentsData : assignmentsData.results || [],
+            }];
+          })
+        );
+        setLessonResources(Object.fromEntries(resourceEntries));
+
         let targetLesson = null;
         if (lessonId) {
           targetLesson = allLessons.find((l) => l.id === Number(lessonId));
@@ -137,6 +152,13 @@ export const CoursePlayer = () => {
   useEffect(() => {
     if (!currentLesson) return;
 
+    const cachedResources = lessonResources[currentLesson.id];
+    if (cachedResources) {
+      setLessonQuizzes(cachedResources.quizzes);
+      setLessonAssignments(cachedResources.assignments);
+      return;
+    }
+
     const fetchLessonResources = async () => {
       try {
         const [quizzesData, assignmentsData] = await Promise.all([
@@ -144,8 +166,13 @@ export const CoursePlayer = () => {
           assignmentService.getAssignments({ lesson: currentLesson.id }).catch(() => []),
         ]);
 
-        setLessonQuizzes(Array.isArray(quizzesData) ? quizzesData : quizzesData.results || []);
-        setLessonAssignments(Array.isArray(assignmentsData) ? assignmentsData : assignmentsData.results || []);
+        const resources = {
+          quizzes: Array.isArray(quizzesData) ? quizzesData : quizzesData.results || [],
+          assignments: Array.isArray(assignmentsData) ? assignmentsData : assignmentsData.results || [],
+        };
+        setLessonQuizzes(resources.quizzes);
+        setLessonAssignments(resources.assignments);
+        setLessonResources((previous) => ({ ...previous, [currentLesson.id]: resources }));
       } catch (err) {
         console.warn('Failed to load lesson quizzes/assignments:', err);
       }
@@ -513,6 +540,17 @@ export const CoursePlayer = () => {
                       </span>
 
                       <span className="flex-1 truncate">{lesson.title}</span>
+
+                      {lessonResources[lesson.id]?.quizzes?.length > 0 && (
+                        <span className="text-[10px] font-bold text-amber-400" title="Quiz attached">
+                          Q
+                        </span>
+                      )}
+                      {lessonResources[lesson.id]?.assignments?.length > 0 && (
+                        <span className="text-[10px] font-bold text-emerald-400" title="Assignment attached">
+                          A
+                        </span>
+                      )}
 
                       {lesson.duration_minutes > 0 && (
                         <span className="text-[10px] text-slate-500 shrink-0">
